@@ -1,0 +1,60 @@
+from django.db import models
+from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+
+class UserManager(BaseUserManager):
+    def _create_user(self, email, password, first_name, last_name, profile_picture, about_self, categories_liked, **extra_fields):
+        if not email:
+            raise ValueError('You must write your email')
+        if not password:
+            raise ValueError('Password must be provided')
+        
+        user = self.model(
+            email=self.normalize_email(email),
+            first_name=first_name,
+            last_name=last_name,
+            profile_picture=profile_picture,
+            about_self=about_self,
+            categories_liked=categories_liked,
+            **extra_fields
+        )
+
+        user.set_password(password)
+        user.save()
+        return user
+
+    def create_user(self, email=None, password=None, first_name=None, last_name=None,
+                    profile_picture=None, about_self=None, categories_liked=None, **extra_fields):
+        extra_fields.setdefault("is_staff", False)
+        extra_fields.setdefault("is_superuser", False)
+        return self._create_user(email, password, first_name, last_name,
+                                 profile_picture, about_self, categories_liked, **extra_fields)
+
+    def create_superuser(self, email=None, password=None, first_name=None, last_name=None,
+                         profile_picture=None, about_self=None, categories_liked=None, **extra_fields):
+        extra_fields.setdefault("is_staff", True)
+        extra_fields.setdefault("is_superuser", True)
+        extra_fields.setdefault("is_active", True)
+        return self._create_user(email, password, first_name, last_name,
+                                 profile_picture, about_self, categories_liked, **extra_fields)
+
+
+class User(AbstractBaseUser, PermissionsMixin):
+    email = models.EmailField(max_length=250, unique=True)
+    first_name = models.CharField(max_length=100, null=True, blank=True)
+    last_name = models.CharField(max_length=120, null=True, blank=True)
+    profile_picture = models.ImageField(upload_to='users/%Y/%m/%d/', blank=True, null=True)
+    about_self = models.CharField(max_length=500, blank=True, null=True)
+    categories_liked = models.JSONField(default=list, blank=True)
+
+    is_staff = models.BooleanField(default=False)
+    is_active = models.BooleanField(default=True)
+    is_superuser = models.BooleanField(default=False)
+
+    objects = UserManager()
+
+    USERNAME_FIELD = 'email'
+    REQUIRED_FIELDS = []
+
+    class Meta:
+        verbose_name = 'User'
+        verbose_name_plural = 'Users'
