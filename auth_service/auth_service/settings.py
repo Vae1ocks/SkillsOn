@@ -77,18 +77,14 @@ WSGI_APPLICATION = 'auth_service.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'auth_service',
-        'USER': 'root',
+        'USER': 'admin',
         'PASSWORD': 'admin',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
-    }
+        'HOST': 'db_auth',
+        'PORT': '5432',
+    },
 }
-
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators

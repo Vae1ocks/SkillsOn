@@ -1,0 +1,71 @@
+services:
+  db_auth:
+    image: postgres:15.6
+    restart: always
+    volumes:
+      - db_auth_data:/var/lib/postgresql/data
+    environment:
+      PGDATA: /var/lib/postgresql/data/auth_service/
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: auth_service
+
+  db_courses:
+    image: postgres:15.6
+    restart: always
+    volumes:
+      - db_courses_data:/var/lib/postgresql/data
+    environment:
+      PGDATA: /var/lib/postgresql/data/courses_service/
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: courses_service
+
+  db_user:
+    image: postgres:15.6
+    restart: always
+    volumes:
+      - db_user_data:/var/lib/postgresql/data
+    environment:
+      PGDATA: /var/lib/postgresql/data/user_service/
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: admin
+      POSTGRES_DB: user_service
+  
+  auth_service:
+    build:
+      context: ./auth_service
+    command: python manage.py runserver 0.0.0.0:8000
+    volumes:
+      - ./auth_service:/auth_service
+    ports:
+      - "8000:8000"
+    depends_on:
+     - db_auth
+
+  courses_service:
+    build:
+      context: ./courses_service
+    command: python manage.py runserver 0.0.0.0:8002
+    volumes:
+      - ./courses_service:/courses_service
+    ports:
+     - "8002:8002"
+    depends_on:
+     - db_courses
+
+  user_service:
+    build:
+      context: ./user_service
+    command: python manage.py runserver 0.0.0.0:8001
+    volumes:
+     - ./user_service:/user_service
+    ports:
+     - "8001:8001"
+    depends_on:
+      - db_user
+
+volumes:
+  db_auth_data:
+  db_courses_data:
+  db_user_data:

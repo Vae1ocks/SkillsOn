@@ -77,15 +77,12 @@ WSGI_APPLICATION = 'user_service.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.mysql',
+        'ENGINE': 'django.db.backends.postgresql',
         'NAME': 'user_service',
-        'USER': 'root',
+        'USER': 'admin',
         'PASSWORD': 'admin',
-        'HOST': 'localhost',
-        'PORT': '3306',
-        'OPTIONS': {
-            'charset': 'utf8mb4',
-        },
+        'HOST': 'db_user',
+        'PORT': '5432',
     }
 }
 
