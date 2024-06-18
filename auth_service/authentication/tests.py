@@ -23,7 +23,7 @@ class Auth_ServiceTest(APITestCase):
             'password': 'testpassword123'
         }
         response = self.client.post(url, data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         session = self.client.session
         self.assertIn('confirmation_code', session)
         self.assertIn('registration_data', session)
@@ -47,7 +47,7 @@ class Auth_ServiceTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
         response = self.client.post(url, valid_data, format='json')
-        self.assertEqual(response.status_code, status.HTTP_302_FOUND)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
         
         session = self.client.session
 
@@ -84,7 +84,7 @@ class Auth_ServiceTest(APITestCase):
 
     @responses.activate
     def test_registration_categories_choice_post(self):
-        responses.add(responses.POST, 'http://127.0.0.1:8001/user_create',
+        responses.add(responses.POST, 'http://127.0.0.1:8001/user-create',
                       status=status.HTTP_201_CREATED)
         reg_data = {
             'email': 'test@test.com',
@@ -126,3 +126,64 @@ class Auth_ServiceTest(APITestCase):
         }
         response = self.client.post(url, data=data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+
+class TestPasswordReset(APITestCase):
+    def test_password_reset_input_email(self):
+        from django.core.mail import outbox
+        email = 'fidjsan@gmail.com'
+        user = user_create(email=email)
+        url = reverse('authentication:password_reset')
+        data = {'email': email}
+
+        response = self.client.post(url, data=data, format='json')
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(len(outbox), 1)
+        session = self.client.session
+        self.assertIn('confirmation_code', session)
+        message = outbox[0]
+        confirmation_code = int(message.body[-6:])
+        self.assertEqual(session['confirmation_code'], confirmation_code)
+
+    def test_password_reset_confirm_email(self):
+        session = self.client.session
+        confirmation_code = 111111
+        session['confirmation_code'] = confirmation_code
+        session.save()
+
+        url = reverse('authentication:password_reset_confirmation')
+        data = {'code': confirmation_code}
+
+        session = self.client.session
+
+        response = self.client.post(url, data=data, format='json')
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(session['is_email_confirmed'])
+        self.assertNotIn('confirmation_code', session)
+
+    @responses.activate
+    def test_password_reset_set_new_password(self):
+        responses.add(responses.POST, 'http://127.0.0.1:8001/user-password-reset',
+                      status=status.HTTP_200_OK)
+        email = 'iowhvbd@gmail.com'
+        user = user_create(email=email)
+
+        password = 'u3gh9843e'
+        data = {'password': password}
+        url = reverse('authentication:password_reset_new_password')
+
+        session = self.client.session
+        session['email'] = email
+        session['is_email_confirmed'] = True
+        session.save()
+        
+        response = self.client.post(url, data=data, format='json')
+        session = self.client.session
+
+        user = get_user_model().objects.get(email=email)
+        
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn('is_email_confirmed', session)
+        self.assertNotIn('email', session)
+        self.assertTrue(user.check_password(password))

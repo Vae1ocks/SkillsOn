@@ -9,17 +9,17 @@ class CategorySerializer(serializers.ModelSerializer):
 
 
 class CourseSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Course
+        fields = ['title', 'owner', 'category']
+
+
+class CourseDetailSerializer(serializers.ModelSerializer):
     students_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Course
-        fields = ['title', 'owner_id', 'students_count', 'description', 'created']
+        fields = ['title', 'owner', 'students_count', 'description', 'created']
 
     def get_students_count(self, obj):
         return JSONLength(obj.students_ids)
-    
-
-class CourseTitleOnlySerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Course
-        fields = ['title']

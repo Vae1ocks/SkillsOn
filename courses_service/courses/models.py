@@ -23,7 +23,7 @@ class CourseManager(models.Manager):
 
 
 class Course(models.Model):
-    owner_id = models.PositiveIntegerField()
+    owner = models.EmailField()
     students_ids = models.JSONField(default=list)
     category = models.ForeignKey(Category,
                                  related_name='courses',

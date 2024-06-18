@@ -81,8 +81,8 @@ DATABASES = {
         'NAME': 'auth_service',
         'USER': 'admin',
         'PASSWORD': 'admin',
-        'HOST': 'db_auth',
-        'PORT': '5432',
+        # 'HOST': 'db_auth',
+        # 'PORT': '5432',
     },
 }
 

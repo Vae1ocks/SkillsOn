@@ -21,3 +21,12 @@ class ConfirmationCodeSerializer(serializers.Serializer):
 
 class CategorySerializer(serializers.Serializer):
     title = serializers.CharField(max_length=150)
+
+
+class EmailSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+
+class PasswordSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ['password']
