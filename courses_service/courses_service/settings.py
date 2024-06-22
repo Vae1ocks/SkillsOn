@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-+w_!57f!=n0_wlm01bnr_1ptqs%k#apvjs#nxh=lymua$($gc1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = ['courses-service', 'localhost', '127.0.0.1', 'antondrk.beget.tech', 'www.antondrk.beget.tech']
 
 
 # Application definition
@@ -38,11 +38,13 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    "corsheaders",
     'courses.apps.CoursesConfig',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    "corsheaders.middleware.CorsMiddleware",
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
     'django.middleware.csrf.CsrfViewMiddleware',
@@ -122,8 +124,30 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/5.0/howto/static-files/
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'static'
 
 # Default primary key field type
 # https://docs.djangoproject.com/en/5.0/ref/settings/#default-auto-field
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
+
+
+CORS_ALLOW_ALL_ORIGINS: True
+
+CORS_ALLOW_METHODS = (
+    "DELETE",
+    "GET",
+    "OPTIONS",
+    "PATCH",
+    "POST",
+    "PUT",
+)
+
+CORS_ALLOW_HEADERS = (
+    "accept",
+    "authorization",
+    "content-type",
+    "user-agent",
+    "x-csrftoken",
+    "x-requested-with",
+)
