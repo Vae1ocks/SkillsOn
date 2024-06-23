@@ -3,7 +3,7 @@ services:
     image: postgres:15.6
     restart: always
     volumes:
-      - db_auth_data:/var/lib/postgresql/data
+      - ./db_auth_data:/var/lib/postgresql/data
     environment:
       PGDATA: /var/lib/postgresql/data/auth_service/
       POSTGRES_USER: admin
@@ -14,7 +14,7 @@ services:
     image: postgres:15.6
     restart: always
     volumes:
-      - db_courses_data:/var/lib/postgresql/data
+      - ./db_courses_data:/var/lib/postgresql/data
     environment:
       PGDATA: /var/lib/postgresql/data/courses_service/
       POSTGRES_USER: admin
@@ -25,43 +25,86 @@ services:
     image: postgres:15.6
     restart: always
     volumes:
-      - db_user_data:/var/lib/postgresql/data
+      - ./db_user_data:/var/lib/postgresql/data
     environment:
       PGDATA: /var/lib/postgresql/data/user_service/
       POSTGRES_USER: admin
       POSTGRES_PASSWORD: admin
       POSTGRES_DB: user_service
-  
+
+  db_kong:
+    image: postgres:15.6
+    restart: always
+    volumes:
+      - ./db_kong_data:/var/lib/postgresql/data
+    environment:
+      PGDATA: /var/lib/postgresql/data/kong/
+      POSTGRES_USER: kong
+      POSTGRES_DB: kong
+      POSTGRES_PASSWORD: kong
+    ports:
+    - "5432:5432"
+
+  kong_migrations:
+    image: kong:latest
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: db_kong
+      KONG_PG_PASSWORD: kong
+    depends_on:
+      - db_kong
+    command: ["sh", "-c", "./wait-for-it.sh db_kong:5432 -- kong migrations bootstrap"]
+    volumes:
+      - ./wait-for-it.sh:/wait-for-it.sh
+
+  kong:
+    image: kong:latest
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: db_kong
+      KONG_PG_PASSWORD: kong
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8001
+    ports:
+    - "8000:8000"
+    - "8001:8001"
+    depends_on:
+      - kong_migrations
+    command: ["sh", "-c", "./wait-for-it.sh kong_migrations:8001 -- kong start"]
+    volumes:
+      - ./wait-for-it.sh:/wait-for-it.sh
+
+
   auth_service:
     build:
       context: ./auth_service
-    command: python manage.py runserver 0.0.0.0:8000
+    container_name: auth-service
+    command: ["./wait-for-it.sh", "db_auth:5432", "--", "sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8002"]
     volumes:
       - ./auth_service:/auth_service
-    ports:
-      - "8000:8000"
     depends_on:
      - db_auth
 
   courses_service:
     build:
       context: ./courses_service
-    command: python manage.py runserver 0.0.0.0:8002
+    container_name: courses-service
+    command: ["./wait-for-it.sh", "db_courses:5432", "--", "sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8003"]
     volumes:
       - ./courses_service:/courses_service
-    ports:
-     - "8002:8002"
     depends_on:
      - db_courses
 
   user_service:
     build:
       context: ./user_service
-    command: python manage.py runserver 0.0.0.0:8001
+    container_name: user-service
+    command: ["./wait-for-it.sh", "db_user:5432", "--", "sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8004"]
     volumes:
      - ./user_service:/user_service
-    ports:
-     - "8001:8001"
     depends_on:
       - db_user
 

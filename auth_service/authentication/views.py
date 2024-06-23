@@ -3,14 +3,18 @@ from rest_framework import generics
 from rest_framework import status
 from rest_framework.response import Response
 from .serializers import UserSerializer, ConfirmationCodeSerializer,\
-    CategorySerializer, EmailSerializer, PasswordSerializer
+    CategorySerializer, EmailSerializer, PasswordSerializer, EmailTokenObtainPairSerializer
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login
 from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
+from django.utils import timezone
+from rest_framework_simplejwt.views import TokenObtainPairView
+import datetime
 import requests
 import random
+import jwt
 
 
 class RegistrationView(APIView):
@@ -89,8 +93,13 @@ class LoginView(APIView):
                             password=password)
         if user is not None:
             if user.is_active:
-                login(request, user)
-                return Response(status=status.HTTP_200_OK)
+                data = {
+                    'id': user.id,
+                    'exp': timezone.now() + datetime.timedelta('days=10'),
+                    'iat': timezone.now()
+                }
+                token = jwt.encode(data, settings.SECRET_KEY, algorithm='HS256')
+                return Response({'token': token}, status=status.HTTP_200_OK)
             return Response({'detail': 'Account is banned'}, status=status.HTTP_403_FORBIDDEN)
         return Response({'detail': 'Invalid data'}, status=status.HTTP_404_NOT_FOUND)
     
@@ -141,7 +150,7 @@ class PasswordResetNewPasswordView(APIView):
             if user_exists:
                 user = get_user_model().objects.get(email=email)
                 try:
-                    url = 'http://127.0.0.1:8001/user-password-reset'
+                    url = 'http://user_service:8004/user-password-reset'
                     data = {'email': email, 'new_password': password}
                     response = requests.post(url, json=data)
                     response.raise_for_status()
@@ -154,3 +163,21 @@ class PasswordResetNewPasswordView(APIView):
                     return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
             return Response({'detail': 'invalid email, user not found'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+from rest_framework_simplejwt.authentication import JWTTokenUserAuthentication
+from rest_framework.permissions import IsAuthenticated
+from rest_framework.views import APIView
+from rest_framework.response import Response
+
+
+class ExampleView(APIView):
+    authentication_classes = [JWTTokenUserAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        user = request.user
+        return Response({"message": f"Hello, {user.email}!"})
+
+
+class EmailTokenObtainPairView(TokenObtainPairView):
+    serializer_class = EmailTokenObtainPairSerializer
