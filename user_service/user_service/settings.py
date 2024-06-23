@@ -137,8 +137,8 @@ DATABASES = {
         'NAME': 'user_service',
         'USER': 'admin',
         'PASSWORD': 'admin',
-        'HOST': 'db_user',
-        'PORT': '5432',
+        #'HOST': 'db_user',
+        #'PORT': '5432',
     }
 }
 
