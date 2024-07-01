@@ -38,6 +38,8 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'rest_framework_simplejwt',
+    'rest_framework_simplejwt.token_blacklist',
     "corsheaders",
     'courses.apps.CoursesConfig',
 ]
@@ -52,6 +54,15 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+
+REST_FRAMEWORK = {
+    'DEFAULT_AUTHENTICATION_CLASSES': (
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
+    )
+}
+
 
 ROOT_URLCONF = 'courses_service.urls'
 
@@ -83,8 +94,8 @@ DATABASES = {
         'NAME': 'courses_service',
         'USER': 'admin',
         'PASSWORD': 'admin',
-        'HOST': 'db_courses',
-        'PORT': 5432,
+        # 'HOST': 'db_courses',
+        # 'PORT': 5432,
     }
 }
 

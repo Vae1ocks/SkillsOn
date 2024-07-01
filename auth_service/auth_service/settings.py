@@ -43,7 +43,7 @@ INSTALLED_APPS = [
     "corsheaders",
     'authentication.apps.AuthenticationConfig'
 ]
-from django.middleware.security import SecurityMiddleware
+
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
     "corsheaders.middleware.CorsMiddleware",

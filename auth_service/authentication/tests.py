@@ -14,7 +14,7 @@ def user_create(email='test@test.com', password='testpassword45', first_name=Non
     )
 
 
-class Auth_ServiceTest(APITestCase):
+class AuthServiceTest(APITestCase):
     def test_registration(self):
         from django.core.mail import outbox
         url = reverse('authentication:registration_user_data')
