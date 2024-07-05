@@ -28,6 +28,7 @@ class CourseManager(models.Manager):
 
 class Course(models.Model):
     author = models.EmailField()
+    author_name = models.CharField(max_length=250, blank=True)
     students = models.JSONField(default=list)
     category = models.ForeignKey(Category,
                                  related_name='courses',
@@ -61,6 +62,7 @@ class Comment(models.Model):
         abstract = True
     
     author = models.EmailField()
+    author_name = models.CharField(max_length=250, blank=True)
     body = models.TextField()
     created = models.DateTimeField(auto_now_add=True)
 

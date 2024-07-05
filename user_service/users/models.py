@@ -45,6 +45,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     profile_picture = models.ImageField(upload_to='users/%Y/%m/%d/', blank=True, null=True)
     about_self = models.CharField(max_length=500, blank=True, null=True)
     categories_liked = models.JSONField(default=list)
+    date_joined = models.DateTimeField(auto_now_add=True)
 
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)

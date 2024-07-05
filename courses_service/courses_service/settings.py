@@ -25,7 +25,8 @@ SECRET_KEY = 'django-insecure-+w_!57f!=n0_wlm01bnr_1ptqs%k#apvjs#nxh=lymua$($gc1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['courses-service', 'localhost', '127.0.0.1', 'antondrk.beget.tech', 'www.antondrk.beget.tech']
+ALLOWED_HOSTS = ['courses-service', 'localhost', '127.0.0.1',
+                 'antondrk.beget.tech', 'www.antondrk.beget.tech']
 
 
 # Application definition
@@ -58,8 +59,8 @@ MIDDLEWARE = [
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
-        'rest_framework.authentication.SessionAuthentication',
+        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # 'rest_framework.authentication.SessionAuthentication',
     )
 }
 
@@ -94,8 +95,8 @@ DATABASES = {
         'NAME': 'courses_service',
         'USER': 'admin',
         'PASSWORD': 'admin',
-        # 'HOST': 'db_courses',
-        # 'PORT': 5432,
+        'HOST': 'db_courses',
+        'PORT': 5432,
     }
 }
 
@@ -162,3 +163,10 @@ CORS_ALLOW_HEADERS = (
     "x-csrftoken",
     "x-requested-with",
 )
+
+CELERY_BROKER_URL = 'amqp://guest:guest@rabbitmq:5672'
+CELERY_RESULT_BACKEND = 'rpc://'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'

@@ -42,6 +42,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=100, null=True, blank=True)
     last_name = models.CharField(max_length=120, null=True, blank=True)
     about_self = models.CharField(max_length=500, blank=True, null=True)
+    date_joined = models.DateTimeField(auto_now_add=True)
 
     is_staff = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)

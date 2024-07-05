@@ -78,6 +78,15 @@ services:
     volumes:
       - ./wait-for-it.sh:/wait-for-it.sh
 
+  rabbitmq:
+    image: rabbitmq:3.13.1-management
+    restart: always
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      - RABBITMQ_DEFAULT_USER=guest
+      - RABBITMQ_DEFAULT_PASS=guest
 
   auth_service:
     build:
@@ -89,6 +98,14 @@ services:
     depends_on:
      - db_auth
 
+  auth_service_worker:
+    build:
+      context: ./auth_service 
+    command: celery -A auth_service worker -l info
+    restart: always
+    depends_on:
+      - auth_service
+
   courses_service:
     build:
       context: ./courses_service
@@ -99,6 +116,14 @@ services:
     depends_on:
      - db_courses
 
+  courses_service_worker:
+    build: 
+      context: ./courses_service 
+    command: celery -A courses_service worker -l info
+    restart: always
+    depends_on:
+      - courses_service
+
   user_service:
     build:
       context: ./user_service
@@ -108,6 +133,14 @@ services:
      - ./user_service:/user_service
     depends_on:
       - db_user
+  
+  user_service_worker:
+    build:
+      context: ./user_service 
+    command: celery -A user_service worker -l info
+    restart: always
+    depends_on:
+      - user_service
 
 volumes:
   db_auth_data:

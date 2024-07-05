@@ -11,6 +11,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework_simplejwt.views import TokenObtainPairView
+from .tasks import user_password_reset_event, user_created_event
 import datetime
 import requests
 import random
@@ -52,7 +53,6 @@ class RegistrationCategoryChoiceView(APIView):
             return Response({'detail': 'Email not confirmed'}, status=status.HTTP_403_FORBIDDEN)
         url = 'http://127.0.0.1:8002/category-list/'
         response = requests.get(url)
-
         if response.status_code == 200:
             categories = response.json()
             return Response(categories, status=status.HTTP_200_OK)
@@ -66,18 +66,15 @@ class RegistrationCategoryChoiceView(APIView):
             registration_data = request.session.pop('registration_data', None)
             if not registration_data:
                 return Response({'detail': 'Registration data not found in session'}, status=status.HTTP_400_BAD_REQUEST)
-            categories_liked = serializer.validated_data
+            categories_liked = serializer.data
             full_reg_data = {**registration_data, 'categories_liked': []}
             for category in categories_liked:
                 full_reg_data['categories_liked'].append(category)
-            url = 'http://127.0.0.1:8001/user-create'
-            response = requests.post(url, json=full_reg_data) # Тут нужна асинхронность
-            if response.status_code == 201:
-                user_serializer = UserSerializer(data=registration_data)
-                if user_serializer.is_valid():
-                    user_serializer.save()
-                    return Response(user_serializer.data, status=status.HTTP_201_CREATED)
-                return Response(user_serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            user_serializer = UserSerializer(data=registration_data)
+            if user_serializer.is_valid():
+                user_created_event.delay(**full_reg_data)
+                user_serializer.save()
+                return Response(user_serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -149,18 +146,12 @@ class PasswordResetNewPasswordView(APIView):
             user_exists = get_user_model().objects.filter(email=email).exists()
             if user_exists:
                 user = get_user_model().objects.get(email=email)
-                try:
-                    url = 'http://user_service:8004/user-password-reset'
-                    data = {'email': email, 'new_password': password}
-                    response = requests.post(url, json=data)
-                    response.raise_for_status()
-                    user.set_password(password)
-                    user.save()
-                    request.session.pop('is_email_confirmed', None)
-                    request.session.pop('email', None)
-                    return Response({'detail': 'Password updated successfully'}, status=status.HTTP_200_OK)
-                except requests.RequestException as e:
-                    return Response({'detail': str(e)}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+                user_password_reset_event.delay(email=email, new_password=password)
+                user.set_password(password)
+                user.save()
+                request.session.pop('is_email_confirmed', None)
+                request.session.pop('email', None)
+                return Response({'detail': 'Password updated successfully'}, status=status.HTTP_200_OK)
             return Response({'detail': 'invalid email, user not found'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
@@ -176,7 +167,7 @@ class ExampleView(APIView):
 
     def get(self, request):
         user = request.user
-        return Response({"message": f"Hello, {user.email}!"})
+        return Response({"message": f"Hello, {user.email}! Your name is {user.first_name} + {user.last_name}"})
 
 
 class EmailTokenObtainPairView(TokenObtainPairView):

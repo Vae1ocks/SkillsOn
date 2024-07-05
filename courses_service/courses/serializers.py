@@ -156,12 +156,13 @@ class ContentSerializer(serializers.ModelSerializer):
 class LessonCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.LessonComment
-        fields = ['id', 'body', 'created', 'lesson']
+        fields = ['id', 'author_name', 'body', 'created', 'lesson']
 
     def create(self, validated_data):
         request = self.context.get('request')
         user = request.user
         validated_data['author'] = user.email
+        validated_data['author_name'] = f'{user.first_name} {user.last_name[0]}.'
         return super().create(validated_data)
     
     def update(self, instance, validated_data):
@@ -227,6 +228,7 @@ class CourseCommentSerializer(serializers.ModelSerializer):
         request = self.context.get('request')
         user = request.user
         validated_data['author'] = user.email
+        validated_data['author_name'] = f'{user.first_name} {user.last_name[0]}.'
         return super().create(validated_data)
     
     def update(self, instance, validated_data):
@@ -240,7 +242,7 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Course
-        fields = ['title', 'author', 'category', 'price',
+        fields = ['title', 'author', 'author_name', 'category', 'price',
                   'students_count']
         
     def get_students_count(self, obj):
@@ -254,7 +256,7 @@ class CourseDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Course
-        fields = ['id', 'title', 'author', 'price', 'students_count',
+        fields = ['id', 'title', 'author', 'author_name', 'price', 'students_count',
                   'description', 'created', 'lessons', 'comments']
 
     def get_students_count(self, obj):
@@ -270,4 +272,7 @@ class CourseCreateSerializer(serializers.ModelSerializer):
         
     def create(self, validated_data):
         slug = slugify(unidecode(validated_data['title']))
-        return models.Course.objects.create(**validated_data, slug=slug)
+        user = self.context.get('request').user
+        author_name = f'{user.first_name} {user.last_name[0]}.'
+        return models.Course.objects.create(**validated_data, slug=slug,
+                                            author_name=author_name)

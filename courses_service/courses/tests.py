@@ -35,11 +35,19 @@ def setup(author='test@test.com', cat_title='TestCategory', course_title='TestCo
 })
 class TestCourses(APITestCase):
     
-    def create_user(self, username='test_user', email='test@test.com', password='testpassword'):
+    def create_user(self, username='test_user',
+                    email='test@test.com',
+                    password='testpassword',
+                    first_name='Test',
+                    last_name='User'):
         self.username = username
         self.email = email
         self.password = password
-        return User.objects.create_user(username=self.username, email=self.email, password=self.password)
+        self.first_name = first_name
+        self.last_name = last_name
+        return User.objects.create_user(username=self.username, email=self.email,
+                                        password=self.password, first_name=self.first_name,
+                                        last_name=self.last_name)
 
     def test_courses_list(self):
         category = category_create()
@@ -78,6 +86,7 @@ class TestCourses(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         course = Course.objects.first()
         self.assertEqual(Category.objects.get(title=data['category']).id, course.category.id)
+        self.assertEqual(course.author_name, f'{user.first_name} {user.last_name[0]}.')
         self.assertEqual(course.author, data['author'])
         self.assertTrue(course.draft)
         self.assertFalse(course.moderated)
