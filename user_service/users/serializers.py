@@ -18,6 +18,8 @@ class UserSerializer(serializers.ModelSerializer):
     
 
 class UserPersonalInfoSerializer(serializers.ModelSerializer):
+    first_name = serializers.CharField(max_length=100, required=False)
+    last_name = serializers.CharField(max_length=100, required=False)
     class Meta:
         model = get_user_model()
         fields = ['profile_picture', 'first_name', 'last_name',
@@ -59,4 +61,5 @@ class ChangePasswordSerializer(serializers.Serializer):
         user_email = self.context['request'].user
         user = get_user_model().objects.get(email=user_email)
         user.set_password(self.validated_data['new_password'])
+        user.save()
         return user

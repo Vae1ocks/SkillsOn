@@ -55,9 +55,11 @@ class UserPersonalInfoUpdateView(APIView):
             for attr, val in validated_data.items():
                 setattr(user, attr, val)
             user.save()
-            
+            return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
-class ConfirmOldEmailView(APIView):
+
+class ConfirmationOldEmailView(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
 
     def get(self, request, *args, **kwargs):
@@ -65,7 +67,7 @@ class ConfirmOldEmailView(APIView):
         request.session['confirmation_code'] = confirmation_code
         body = f'Ваш код для подтверждения текущей почты: {confirmation_code}'
         tasks.send_confirmation_code.delay(body=body, email=request.user.email)
-        return Response({'detail': 'code was sent'}, status=status.HTTP_200_OK)
+        return Response({'detail': 'Код был выслан'}, status=status.HTTP_200_OK)
     
     def post(self, request, *args, **kwargs):
         serializer = serializers.ConfirmationCodeSerializer(data=request.data)
@@ -84,7 +86,7 @@ class ConfirmOldEmailView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
-class EmailUpdateNewEmailView(APIView):
+class EmailUpdateSetNewEmailView(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
 
     def post(self, request, *args, **kwargs):
@@ -120,7 +122,7 @@ class EmailUpdateFinish(APIView):
                 if exp_code == entered_code:
                     email = serializer.validated_data['email']
                     user = get_user_model().objects.get(email=request.user.email)
-                    tasks.user_email_updated_event(old_user_email=request.user.email,
+                    tasks.user_email_updated_event.delay(old_user_email=request.user.email,
                                                    new_user_email=email)
                     user.email = email
                     user.save()
@@ -141,6 +143,10 @@ class PasswordChangeView(APIView):
             context={'request': request}
         )
         if serializer.is_valid():
+            tasks.user_password_updated_event.delay(
+                email=request.user.email,
+                password=serializer.validated_data['new_password']
+            )
             serializer.save()
             return Response({'detail': 'Пароль успешно обновлён'},
                             status=status.HTTP_200_OK)

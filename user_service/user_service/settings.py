@@ -60,7 +60,8 @@ ROOT_URLCONF = 'user_service.urls'
 
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
-        'rest_framework_simplejwt.authentication.JWTAuthentication',
+        # 'rest_framework_simplejwt.authentication.JWTAuthentication',
+        'rest_framework.authentication.SessionAuthentication',
     )
 }
 
@@ -107,7 +108,7 @@ SIMPLE_JWT = {
     "SLIDING_TOKEN_REFRESH_SERIALIZER": "rest_framework_simplejwt.serializers.TokenRefreshSlidingSerializer",
 }
 
-AUTH_SERVICE_URL = 'http://127.0.0.1:8002'
+AUTH_SERVICE_URL = 'http://auth_service:8002'
 
 TEMPLATES = [
     {
@@ -137,8 +138,8 @@ DATABASES = {
         'NAME': 'user_service',
         'USER': 'admin',
         'PASSWORD': 'admin',
-        'HOST': 'db_user',
-        'PORT': '5432',
+        # 'HOST': 'db_user',
+        # 'PORT': '5432',
     }
 }
 

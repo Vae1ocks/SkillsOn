@@ -44,7 +44,7 @@ def user_personal_info_updated_event(user_email, **kwargs):
 
 @shared_task
 def user_email_updated_event(old_user_email, new_user_email):
-    connection = pika.BlockingConnection(pika.ConnectionParametrs('rabbitmq'))
+    connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
     channel = connection.channel()
     channel.exchange_declare(exchange='user_update',
                              exchange_type='direct')
