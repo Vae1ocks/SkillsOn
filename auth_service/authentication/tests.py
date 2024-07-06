@@ -2,10 +2,13 @@ from rest_framework.test import APITestCase
 from django.urls import reverse
 from rest_framework import status
 from django.contrib.auth import get_user_model
+from unittest.mock import patch
 import responses
+import json
 
 
-def user_create(email='test@test.com', password='testpassword45', first_name=None, last_name=None):
+def user_create(email='test@test.com', password='testpassword45',
+                first_name='First Name', last_name='Last Name'):
     return get_user_model().objects.create_user(
         email=email,
         password=password,
@@ -20,7 +23,9 @@ class AuthServiceTest(APITestCase):
         url = reverse('authentication:registration_user_data')
         data = {
             'email': 'test@test.com',
-            'password': 'testpassword123'
+            'password': 'testpassword123',
+            'first_name': 'Test',
+            'last_name': 'Test',
         }
         response = self.client.post(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -29,6 +34,8 @@ class AuthServiceTest(APITestCase):
         self.assertIn('registration_data', session)
         self.assertEqual(session['registration_data']['email'], data['email'])
         self.assertEqual(session['registration_data']['password'], data['password'])
+        self.assertEqual(session['registration_data']['first_name'], data['first_name'])
+        self.assertEqual(session['registration_data']['last_name'], data['last_name'])
         self.assertEqual(len(outbox), 1)
         message = outbox[0]
         confirmation_code = int(message.body[-6:])
@@ -82,10 +89,8 @@ class AuthServiceTest(APITestCase):
         self.assertEqual(len(response.json()), 4)
         self.assertEqual(response.json()[0], {'title': '1st category'})
 
-    @responses.activate
-    def test_registration_categories_choice_post(self):
-        responses.add(responses.POST, 'http://127.0.0.1:8001/user-create',
-                      status=status.HTTP_201_CREATED)
+    @patch('authentication.tasks.user_created_event.delay')
+    def test_registration_categories_choice_post(self, mock_user_created_event):
         reg_data = {
             'email': 'test@test.com',
             'first_name': 'Test',
@@ -105,6 +110,7 @@ class AuthServiceTest(APITestCase):
         url = reverse('authentication:registration_category_choice')
         response = self.client.post(url, categories_liked_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        mock_user_created_event.assert_called_once()
 
     def test_registration_categories_choice_post_forbidden(self):
         categories_liked_data = [{'title': '1st category'},
@@ -119,13 +125,16 @@ class AuthServiceTest(APITestCase):
     def test_login(self):
         user = user_create(email='test@test.com', password='testpassword')
         
-        url = reverse('authentication:login')
+        url = reverse('authentication:token_obtain_pair')
         data = {
             'email': 'test@test.com',
             'password': 'testpassword'
         }
         response = self.client.post(url, data=data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+        content = json.loads(response.content)
+        self.assertIn('refresh', content)
+        self.assertIn('access', content)
 
 
 class TestPasswordReset(APITestCase):
@@ -162,10 +171,8 @@ class TestPasswordReset(APITestCase):
         self.assertTrue(session['is_email_confirmed'])
         self.assertNotIn('confirmation_code', session)
 
-    @responses.activate
-    def test_password_reset_set_new_password(self):
-        responses.add(responses.POST, 'http://127.0.0.1:8001/user-password-reset',
-                      status=status.HTTP_200_OK)
+    @patch('authentication.tasks.user_password_reset_event.delay')
+    def test_password_reset_set_new_password(self, mock_user_password_reset_event):
         email = 'iowhvbd@gmail.com'
         user = user_create(email=email)
 
@@ -187,3 +194,4 @@ class TestPasswordReset(APITestCase):
         self.assertNotIn('is_email_confirmed', session)
         self.assertNotIn('email', session)
         self.assertTrue(user.check_password(password))
+        mock_user_password_reset_event.assert_called_once()
