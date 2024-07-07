@@ -13,4 +13,6 @@ urlpatterns = [
     path('update/email/confirmation/new-email', views.EmailUpdateFinish.as_view(),
          name='email_update_confirmation_new_email'),
     path('update/password/', views.PasswordChangeView.as_view(), name='password_update'),
+    path('chat/', views.ChatListView.as_view(), name='chat_list'),
+    path('chat/<int:pk>/', views.ChatRetrieveView.as_view(), name='chat_retrieve')
 ]

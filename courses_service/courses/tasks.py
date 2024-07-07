@@ -55,6 +55,11 @@ def handle_user_email_updated_event():
         models.Course.objects.filter(author=old_email).update(author=new_email)
         models.CourseComment.objects.filter(author=old_email).update(author=new_email)
         models.LessonComment.objects.filter(author=old_email).update(author=new_email)
+        courses = models.Course.objects.filter(students__contains=[old_email])
+        for course in courses:
+            course.students = [new_email if email == old_email else email
+                               for email in course.students]
+            course.save()
 
     channel.basic_consume(queue=queue_name, on_message_callback=email_update,
                           auto_ack=True)

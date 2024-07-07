@@ -1,6 +1,7 @@
 from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
+from .models import Chat, Message
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -20,6 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
 class UserPersonalInfoSerializer(serializers.ModelSerializer):
     first_name = serializers.CharField(max_length=100, required=False)
     last_name = serializers.CharField(max_length=100, required=False)
+
     class Meta:
         model = get_user_model()
         fields = ['profile_picture', 'first_name', 'last_name',
@@ -63,3 +65,44 @@ class ChangePasswordSerializer(serializers.Serializer):
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
+    
+
+class UserListSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ['id', 'email', 'profile_picture']
+
+
+class ChatSerializer(serializers.ModelSerializer):
+    users = serializers.ListField(
+        child=serializers.EmailField(),
+        write_only=True
+    )
+    user_detail = UserListSerializer(many=True, read_only=True, source='users')
+
+    class Meta:
+        model = Chat
+        fields = ['id', 'users', 'user_detail']
+
+    def create(self, validated_data):
+        user_emails = validated_data.pop('users')
+        users = get_user_model().objects.filter(email__in=user_emails)
+        chat = Chat.objects.create()
+        chat.users.set(users)
+        return chat
+    
+
+class MessageSerializer(serializers.ModelSerializer):
+    author = serializers.ReadOnlyField(source='author.email')
+
+    class Meta:
+        model = Message
+        fields = '__all__'
+
+
+class ChatDetailSerializer(serializers.ModelSerializer):
+    messages = MessageSerializer(many=True)
+
+    class Meta:
+        model = Chat
+        fields = ['id', 'messages']

@@ -2,8 +2,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.generics import UpdateAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.generics import ListCreateAPIView, RetrieveDestroyAPIView
 from rest_framework import status
 from .permissions import IsRequestUserProfile
+from .models import Chat, Message
 from . import serializers
 from django.contrib.auth import get_user_model
 from . import tasks
@@ -151,3 +153,21 @@ class PasswordChangeView(APIView):
             return Response({'detail': 'Пароль успешно обновлён'},
                             status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+    
+
+class ChatListView(ListCreateAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = serializers.ChatSerializer
+
+    def get_queryset(self):
+        user = get_user_model().objects.get(email=self.request.user.email)
+        return Chat.objects.filter(users__id=user.id)
+    
+
+class ChatRetrieveView(RetrieveDestroyAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = serializers.ChatDetailSerializer
+
+    def get_queryset(self):
+        user = get_user_model().objects.get(email=self.request.user.email)
+        return Chat.objects.filter(users__id=user.id)

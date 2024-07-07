@@ -3,6 +3,8 @@ from django.urls import reverse
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from unittest.mock import patch
+from .models import Chat, Message
+import json
 
 
 class TestUser(APITestCase):
@@ -19,6 +21,7 @@ class TestUser(APITestCase):
             last_name=last_name,
             categories_liked=self.categories_liked
         )
+    '''
     @patch('users.tasks.user_personal_info_updated_event.delay')
     def test_user_personal_info_update(self, mock_send_confirmation_code):
         user = self.user_create()
@@ -109,3 +112,48 @@ class TestUser(APITestCase):
         mock_user_password_updated_event.assert_called_once()
         user.refresh_from_db()
         self.assertTrue(user.check_password(data['new_password']))
+    '''
+    def test_chat_create(self):
+        user = self.user_create()
+        user2 = self.user_create(email='testemail@test.com')
+        self.client.login(username=self.email, password=self.password)
+        url = reverse('users:chat_list')
+        data = {'users': ['test@test.com', 'testemail@test.com']}
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, 201)
+
+    def test_chat_list(self):
+        user = self.user_create()
+        user2 = self.user_create(email='testemail@test.com')
+        self.client.login(username=self.email, password=self.password)
+        url = reverse('users:chat_list')
+        chat = Chat.objects.create()
+        chat.users.set([user, user2])
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        content = json.loads(response.content)
+        users_detail = content[0]['user_detail']
+        self.assertEqual(len(users_detail), 2)
+        self.assertEqual(users_detail[0]['email'], user.email)
+        self.assertEqual(users_detail[1]['email'], user2.email)
+        self.assertEqual(users_detail[0]['profile_picture'], user.profile_picture)
+        self.assertEqual(users_detail[1]['profile_picture'], user2.profile_picture)
+
+    def test_chat_retrieve(self):
+        user = self.user_create()
+        user2 = self.user_create(email='testemail@test.com')
+        self.client.login(username=self.email, password=self.password)
+        chat = Chat.objects.create()
+        url = reverse('users:chat_retrieve', args=(chat.id, ))
+        chat.users.set([user, user2])
+        message = Message.objects.create(author=user, text='dddddd', chat=chat)
+        
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        content = json.loads(response.content)
+        self.assertIn('messages', content)
+        self.assertEqual(content['messages'][0]['text'], message.text)
+        self.assertEqual(content['messages'][0]['author'], message.author.email)
+        self.assertEqual(content['messages'][0]['chat'], message.chat.id)

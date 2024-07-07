@@ -1,4 +1,5 @@
 from django.db import models
+from django.core.exceptions import ValidationError
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 
 class UserManager(BaseUserManager):
@@ -59,3 +60,21 @@ class User(AbstractBaseUser, PermissionsMixin):
     class Meta:
         verbose_name = 'User'
         verbose_name_plural = 'Users'
+
+
+class Chat(models.Model):
+    users = models.ManyToManyField(User, related_name='chats')
+
+    def __str__(self):
+        return 'Chat'
+
+
+class Message(models.Model):
+    chat = models.ForeignKey(Chat,
+                             on_delete=models.CASCADE,
+                             related_name='messages')
+    author = models.ForeignKey(User,
+                               on_delete=models.CASCADE,
+                               related_name='messages')
+    created = models.DateTimeField(auto_now_add=True)
+    text = models.TextField()
