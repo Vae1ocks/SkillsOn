@@ -70,7 +70,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ['id', 'email', 'profile_picture']
+        fields = ['id', 'first_name', 'last_name', 'email', 'profile_picture']
 
 
 class ChatSerializer(serializers.ModelSerializer):
