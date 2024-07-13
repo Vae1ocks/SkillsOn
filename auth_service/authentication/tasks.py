@@ -3,8 +3,10 @@ from celery.signals import worker_ready
 import pika
 import json
 from django.contrib.auth import get_user_model
+from auth_service.celery import app
+from threading import Thread
 
-@shared_task
+
 def handle_user_email_updated_event():
     connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
     channel = connection.channel()
@@ -29,7 +31,7 @@ def handle_user_email_updated_event():
                           auto_ack=True)
     channel.start_consuming()
     
-@shared_task
+
 def handle_user_password_updated_event():
     connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
     channel = connection.channel()
@@ -40,7 +42,6 @@ def handle_user_password_updated_event():
 
     channel.queue_bind(exchange='user_update', queue=queue_name,
                        routing_key='user.password.update')
-    
     def password_update(ch, method, properties, body):
         data = json.loads(body)
         email = data['email']
@@ -53,7 +54,7 @@ def handle_user_password_updated_event():
     channel.basic_consume(queue=queue_name, on_message_callback=password_update,
                           auto_ack=True)
     channel.start_consuming()
-    
+
 @shared_task
 def user_password_reset_event(email, new_password):
     connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
@@ -83,8 +84,17 @@ def user_created_event(**kwargs):
                           body=message)
     connection.close()
 
+@shared_task
+def start_email_consumer():
+    email_thread = Thread(target=handle_user_email_updated_event)
+    email_thread.start()
+
+@shared_task
+def start_password_consumer():
+    password_thread = Thread(target=handle_user_password_updated_event)
+    password_thread.start()
+
 @worker_ready.connect
 def start(sender, **kwargs):
-    with sender.app.connection() as conn:
-        sender.app.send_task('handle_user_email_updated_event')
-        sender.app.send_task('handle_user_password_updated_event')
+    start_email_consumer.delay()
+    start_password_consumer.delay()

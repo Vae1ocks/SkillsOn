@@ -25,8 +25,7 @@ SECRET_KEY = 'django-insecure-+w_!57f!=n0_wlm01bnr_1ptqs%k#apvjs#nxh=lymua$($gc1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['courses-service', 'localhost', '127.0.0.1',
-                 'antondrk.beget.tech', 'www.antondrk.beget.tech']
+ALLOWED_HOSTS = ['courses-service', 'localhost', '127.0.0.1', '31.128.42.26']
 
 
 # Application definition
@@ -43,6 +42,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt.token_blacklist',
     "corsheaders",
     'courses.apps.CoursesConfig',
+    'payment.apps.PaymentConfig',
 ]
 
 MIDDLEWARE = [
@@ -170,3 +170,19 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+CELERY_IMPORTS = (
+    'courses.tasks',
+)
+
+
+YOOKASSA_SECRET_KEY = 'test_XNy-Fi909xFYLCXW6w-mMZBIfIjEm4vHgQA3H4WhDZs'
+YOOKASSA_ACCOUNT_ID = 415869
+
+STRIPE_PUBLISHABLE_KEY = 'pk_test_51PaL6LHb3jL9c0IRhxuw3RsyJ92XZ8uEDFyoFx27ZI0Lj3CunpbOH7myayJHuYa0DfklCY3HBXlyWOo3m1IiSX2Q008pYIirPP'
+STRIPE_SECRET_KEY = 'sk_test_51PaL6LHb3jL9c0IRXodzo4fbrf2EcbjE5mh9GRAFtYYLrtCVd0TyegEbZsnjfys2eORwAqLqPCcFn4pbR1gMTwLk00Kc7jKG50'
+STRIPE_API_VERSION = '2024-06-20'
+STRIPE_WEBHOOK_SECRET = 'whsec_cc8fc5687aa0de6e0a1aca8f971048160e032d076dc003a9f849bd0e1d3c08e5'
+
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = False

@@ -5,6 +5,7 @@ import json
 from django.core.mail import send_mail
 from django.conf import settings
 from django.contrib.auth import get_user_model
+from threading import Thread
 
 
 @shared_task
@@ -74,14 +75,14 @@ def user_password_updated_event(email, password):
                           body=message)
     connection.close()
 
-@shared_task
 def handle_user_password_reset_event():
     connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
     channel = connection.channel()
     channel.exchange_declare(exchange='auth_user_update',
                              exchange_type='direct')
     
-    queue_result = channel.queue_declare(queue='password_reset_queue', exclusive=True)
+    queue_result = channel.queue_declare(exchange='auth_user_update', queue='password_reset_queue',
+                                         exclusive=True)
     queue_name = queue_result.method.queue
 
     channel.queue_bind(queue=queue_name, routing_key='user.password.reset')
@@ -99,7 +100,6 @@ def handle_user_password_reset_event():
                           auto_ack=True)
     channel.start_consuming()
 
-@shared_task
 def handle_user_created_event():
     connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
     channel = connection.channel()
@@ -108,14 +108,55 @@ def handle_user_created_event():
     queue_result = channel.queue_declare(queue='user_create_queue', exclusive=True)
     queue_name = queue_result.method.queue
 
-    channel.queue_bind(queue=queue_name, routing_key='user.create')
+    channel.queue_bind(exchange='auth_user_update', queue=queue_name,
+                       routing_key='user.create')
 
     def user_create(ch, method, properties, body):
         data = json.loads(body)
         get_user_model().objects.create(**data)
 
+    channel.basic_consume(queue=queue_name, on_message_callback=user_create,
+                          auto_ack=True)
+    channel.start_consuming()
+
+def handle_user_profit_income_event():
+    connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
+    channel = connection.channel()
+    channel.exchange_declare(exchange='user_update',
+                             exchange_type='direct')
+    queue_result = channel.queue_declare(queue='user_profit_income_queue', exclusive=True)
+    queue_name = queue_result.method.queue
+
+    channel.queue_bind(exchange='user_update', queue=queue_name,
+                       routing_key='user.profit.income')
+
+    def user_get_profit(ch, method, properties, body):
+        data = json.loads(body)
+        user = get_user_model().objects.get(email=data['author'])
+        user.balance += data['profit']
+        user.save()
+
+    channel.basic_consume(queue=queue_name, on_message_callback=user_get_profit,
+                          auto_ack=True)
+    channel.start_consuming()
+
+@shared_task
+def start_user_password_reset_consumer():
+    user_password_reset_consumer = Thread(target=handle_user_password_reset_event)
+    user_password_reset_consumer.start()
+
+@shared_task
+def start_user_created_consumer():
+    user_created_consumer = Thread(target=handle_user_created_event)
+    user_created_consumer.start()
+
+@shared_task
+def start_user_profit_income_consumer():
+    user_profit_income_consumer = Thread(target=handle_user_profit_income_event)
+    user_profit_income_consumer.start()
+
 @worker_ready.connect
 def start(sender, **kwargs):
-    with sender.app.connection() as conn:
-        sender.app.send_task('handle_user_created_event')
-        sender.app.send_task('handle_user_password_reset_event')
+    start_user_password_reset_consumer.delay()
+    start_user_created_consumer.delay()
+    start_user_profit_income_consumer.delay()

@@ -7,7 +7,7 @@ WORKDIR /courses_service
 
 RUN pip install --upgrade pip
 
-COPY ../requirements.txt /courses_service/
+COPY requirements.txt /courses_service/
 RUN pip install -r /courses_service/requirements.txt
 
 COPY . /courses_service/

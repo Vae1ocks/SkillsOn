@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-2%uy3p%)+fgnto!mgmvt0t=5)i6mifg@$9+0b%ln7+@0+s7cog
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['user-service', 'localhost', '127.0.0.1', 'antondrk.beget.tech', 'www.antondrk.beget.tech']
+ALLOWED_HOSTS = ['user-service', 'localhost', '127.0.0.1', '31.128.42.26']
 
 
 # Application definition
@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     'rest_framework_simplejwt',
     "corsheaders",
     'users.apps.UsersConfig',
+    'payout.apps.PayoutConfig'
 ]
 
 MIDDLEWARE = [
@@ -217,6 +218,9 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+CELERY_IMPORTS = (
+    'users.tasks',
+)
 
 
 CHANNEL_LAYERS = {
@@ -227,3 +231,7 @@ CHANNEL_LAYERS = {
         }
     }
 }
+
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = False

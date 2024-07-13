@@ -2,14 +2,17 @@ from rest_framework import serializers
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
 from .models import Chat, Message
+from payout.serializers import UserPayoutSerializer
 
 
 class UserSerializer(serializers.ModelSerializer):
+    payouts = UserPayoutSerializer(many=True, read_only=True)
+
     class Meta:
         model = get_user_model()
         fields = ['email', 'first_name', 'last_name',
                   'profile_picture', 'about_self', 'categories_liked',
-                  'password']
+                  'payouts', 'password']
         extra_kwargs = {'password': {'write_only' : True}}
         
     def create(self, validated_data):
@@ -106,3 +109,9 @@ class ChatDetailSerializer(serializers.ModelSerializer):
     class Meta:
         model = Chat
         fields = ['id', 'messages']
+
+
+class OtherUserSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = get_user_model()
+        fields = ['first_name', 'last_name', 'profile_picture', 'about_self']

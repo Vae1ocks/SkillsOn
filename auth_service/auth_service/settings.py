@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-kn@#59&6dy!d8*kizp_r4tb%e+g2ls%fcu6kb=4g!g+d^fi6k1
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = ['auth-service', 'localhost', '127.0.0.1', 'antondrk.beget.tech', 'www.antondrk.beget.tech']
+ALLOWED_HOSTS = ['auth-service', 'localhost', '127.0.0.1', '31.128.42.26']
 
 
 # Application definition
@@ -222,3 +222,10 @@ CELERY_ACCEPT_CONTENT = ['json']
 CELERY_TASK_SERIALIZER = 'json'
 CELERY_RESULT_SERIALIZER = 'json'
 CELERY_TIMEZONE = 'UTC'
+CELERY_IMPORTS = (
+    'authentication.tasks',
+)
+
+CSRF_COOKIE_SECURE = False
+SESSION_COOKIE_SECURE = False
+SECURE_SSL_REDIRECT = False

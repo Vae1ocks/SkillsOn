@@ -166,9 +166,11 @@ class ExampleView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        user = request.user
-        return Response({"message": f"Hello, {user.email}! Your name is {user.first_name} + {user.last_name}"})
-
+        print('Ща чёт будет')
+        request.user.email = 'user@user.com'
+        print(request.user)
+        return Response({"message": f"Hello, {request.user.email}! \
+                         Your name is {request.user.first_name} + {request.user.last_name}"})
 
 class EmailTokenObtainPairView(TokenObtainPairView):
     serializer_class = EmailTokenObtainPairSerializer

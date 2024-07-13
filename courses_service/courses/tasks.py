@@ -2,10 +2,10 @@ from celery import shared_task
 from celery.signals import worker_ready
 import json
 import pika
-
+from threading import Thread
 from . import models
 
-@shared_task
+
 def handle_user_personal_info_updated_event():
     connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
     channel = connection.channel()
@@ -36,7 +36,6 @@ def handle_user_personal_info_updated_event():
                           auto_ack=True)
     channel.start_consuming()
 
-@shared_task
 def handle_user_email_updated_event():
     connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
     channel = connection.channel()
@@ -65,8 +64,17 @@ def handle_user_email_updated_event():
                           auto_ack=True)
     channel.start_consuming()
 
+@shared_task
+def start_user_personal_info_updated_consumer():
+    user_personal_info_updated_consumer = Thread(target=handle_user_personal_info_updated_event)
+    user_personal_info_updated_consumer.start()
+
+@shared_task
+def start_user_email_updated_consumer():
+    user_email_updated_consumer = Thread(target=handle_user_email_updated_event)
+    user_email_updated_consumer.start()
+
 @worker_ready.connect
 def start(sender, **kwargs):
-    with sender.app.connection() as conn:
-        sender.app.send_task('handle_user_email_updated_event')
-        sender.app.send_task('handle_user_personal_info_updated_event')
+    start_user_personal_info_updated_consumer.delay()
+    start_user_email_updated_consumer.delay()

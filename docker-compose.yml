@@ -84,6 +84,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:3.13.1-management
+    container_name: rabbitmq
     restart: always
     ports:
       - "5672:5672"
@@ -96,7 +97,8 @@ services:
     build:
       context: ./auth_service
     container_name: auth-service
-    command: ["./wait-for-it.sh", "db_auth:5432", "--", "sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8002"]
+    command: ["./wait-for-it.sh", "db_auth:5432", "--", "sh", "-c", "python manage.py migrate &&
+              uwsgi --ini /auth_service/config/uwsgi/uwsgi.ini"]
     volumes:
       - ./auth_service:/auth_service
     depends_on:
@@ -109,12 +111,14 @@ services:
     restart: always
     depends_on:
       - auth_service
+      - rabbitmq
 
   courses_service:
     build:
       context: ./courses_service
     container_name: courses-service
-    command: ["./wait-for-it.sh", "db_courses:5432", "--", "sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8003"]
+    command: ["./wait-for-it.sh", "db_courses:5432", "--", "sh", "-c", "python manage.py migrate &&
+              uwsgi --ini /courses_service/config/uwsgi/uwsgi.ini"]
     volumes:
       - ./courses_service:/courses_service
     depends_on:
@@ -127,17 +131,34 @@ services:
     restart: always
     depends_on:
       - courses_service
+      - rabbitmq
 
   user_service:
     build:
       context: ./user_service
     container_name: user-service
-    command: ["./wait-for-it.sh", "db_user:5432", "--", "sh", "-c", "python manage.py migrate && python manage.py runserver 0.0.0.0:8004"]
+    command: ["./wait-for-it.sh", "db_user:5432", "--", "sh", "-c", "python manage.py migrate &&
+              uwsgi --ini /user_service/config/uwsgi/uwsgi.ini"]
     volumes:
      - ./user_service:/user_service
     depends_on:
       - db_user
-  
+
+  daphne:
+    build:
+      context: ./user_service
+    command: ["./wait-for-it.sh", "db_user:5432", "--", "daphne", "-u",
+              "/user_service/daphne.sock", "user_service.asgi:application"]
+    volumes:
+      - ./user_service:/user_service
+    environment:
+      - POSTGRES_DB=user_service
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
+    depends_on:
+      - db_user
+      - redis
+        
   user_service_worker:
     build:
       context: ./user_service 
@@ -145,6 +166,20 @@ services:
     restart: always
     depends_on:
       - user_service
+      - rabbitmq
+
+  nginx:
+    image: nginx:1.23.1
+    restart: always
+    volumes:
+      - ./config/nginx:/etc/nginx/templates
+      - ./auth_service:/auth_service
+      - ./courses_service:/courses_service
+      - ./user_service:/user_service
+      - ./config/ssl:/edproj/config/ssl
+    ports:
+      - "80:80"
+      - "443:443"
 
 volumes:
   db_auth_data:
