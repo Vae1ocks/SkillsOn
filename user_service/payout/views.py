@@ -1,14 +1,18 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
-from rest_framework.exceptions import ValidationError
+from rest_framework.response import Response
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from .models import UserPayout
 from .tasks import check_payout_status
-from yookassa import Payout
+from yookassa import Payout, Configuration
+from django.conf import settings
 import uuid
 
+Configuration.account_id = settings.YOOKASSA_ACCOUNT_ID
+Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
 
 class YooKassaPayoutView(APIView):
     permission_classes = [IsAuthenticated]
@@ -16,11 +20,13 @@ class YooKassaPayoutView(APIView):
     def post(self, request, *args, **kwargs):
         payout_token = request.data.get('payout_token')
         value = request.data.get('value')
-        user = get_user_model().objects.get(email=request.user.email)
+        user = get_user_model().objects.get(id=request.user.id)
         if user.balance < value:
-            raise ValidationError('Недостаточно средств')
+            return Response({'detail': 'Недостаточно средств'},
+                            status=status.HTTP_400_BAD_REQUEST)
         if not payout_token or not value:
-            raise ValidationError('Не переданы данные для платежа')
+            return Response({'detail': 'Не переданы данные для платежа'},
+                            status=status.HTTP_400_BAD_REQUEST)
         idempotence_key = str(uuid.uuid4())
 
         user_payout = UserPayout.objects.create(

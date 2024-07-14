@@ -41,8 +41,8 @@ class YookassaPaymentView(APIView):
             )
             return Response(
                 {'confirmation_url': payment.confirmation['confirmation_url']},
-                status=status.HTTP_200_OK
-            )      
+                status=status.HTTP_200_OK)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)      
 
 class StripePayment(APIView):
     permission_classes = [IsAuthenticated]

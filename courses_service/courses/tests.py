@@ -7,6 +7,7 @@ from . import serializers
 from decimal import Decimal
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
+from django.contrib.auth import get_user_model
 
 
 def category_create(title='TestCategory'):
@@ -58,13 +59,17 @@ class TestCourses(APITestCase):
                                 category=category, price=Decimal(100), students=[1,2])
 
         url = reverse('courses:course-list')
-
+        user = get_user_model().objects.create(username='Test', password='tesetsdttw2')
         response = self.client.get(url)
+        response.user = user
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.json()), 3)
-        self.assertEqual(response.json()[0], serializers.CourseSerializer(course2).data)
-        self.assertEqual(response.json()[1], serializers.CourseSerializer(course3).data)
-        self.assertEqual(response.json()[2], serializers.CourseSerializer(course1).data)
+        self.assertEqual(response.json()[0], serializers.CourseSerializer(
+            course2, context={'request': response}).data)
+        self.assertEqual(response.json()[1], serializers.CourseSerializer(
+            course3, context={'request': response}).data)
+        self.assertEqual(response.json()[2], serializers.CourseSerializer(
+            course1, context={'request': response}).data)
 
     def test_course_create(self):
         category = category_create()
@@ -99,7 +104,7 @@ class TestCourses(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.json(), serializers.CourseDetailSerializer(course).data)
-
+    
     def test_course_partial_update(self):
         user = self.create_user()
         course = setup(author=user.id)
@@ -262,6 +267,10 @@ class TestCourses(APITestCase):
                 for key in exp_content['item']:
                     self.assertEqual(content['item_data'][key], exp_content['item'][key])
 
+        url = reverse('courses:course_detail', args=(course.slug, course.id))
+
+        response = self.client.get(url)
+
     def test_lesson_update(self):
         course, data = self.create_lesson()
         data['title'] = 'New Test Title'
@@ -303,14 +312,12 @@ class TestCourses(APITestCase):
         
         response = self.client.put(url, data=data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-
+        
         r_data = response.json()
         self.assertEqual(r_data['course'], course.id)
         self.assertEqual(r_data['title'], data['title'])
-
         contents = r_data['contents']
 
         for content, exp_content in zip(contents, data['contents']):

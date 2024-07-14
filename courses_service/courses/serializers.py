@@ -173,11 +173,23 @@ class LessonCommentSerializer(serializers.ModelSerializer):
 class LessonSerializer(serializers.ModelSerializer):
     contents = ContentSerializer(many=True)
     comments = LessonCommentSerializer(many=True, read_only=True)
+    user_seen = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Lesson
-        fields = ['course', 'title', 'draft', 'contents', 'comments']
+        fields = ['course', 'title', 'draft', 'contents', 'comments', 'user_seen']
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if self.context.get('called_from_course') is not True:
+            self.fields.pop('user_seen')
+    
+    def get_user_seen(self, obj):
+        request = self.context.get('request')
+        if request and request.user.id in obj.users_seen:
+            return True
+        return False
+    
     def create(self, validated_data):
         contents_data = validated_data.pop('contents')
         slug = slugify(unidecode(validated_data.get('title')))
@@ -239,12 +251,26 @@ class CourseCommentSerializer(serializers.ModelSerializer):
 class CourseSerializer(serializers.ModelSerializer):
     students_count = serializers.SerializerMethodField()
     category = CategorySerializer(read_only=True)
+    lessons_seen = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Course
         fields = ['title', 'author', 'author_name', 'category', 'price',
-                  'students_count']
-        
+                  'students_count', 'lessons_seen']
+    
+    def get_lessons_seen(self, obj):
+        lessons_seen = 0
+        all_lessons = obj.lessons.count()
+        user_id = self.context['request'].user.id
+        if user_id not in obj.students:
+            return 'N/A'
+        if all_lessons == 0:
+            return '0%'
+        for lesson in obj.lessons.all():
+            if user_id in lesson.users_seen:
+                lessons_seen += 1
+        return f'{int((lessons_seen / all_lessons) * 100)}%'
+    
     def get_students_count(self, obj):
         return len(obj.students)
 
@@ -252,12 +278,18 @@ class CourseSerializer(serializers.ModelSerializer):
 class CourseDetailSerializer(serializers.ModelSerializer):
     students_count = serializers.SerializerMethodField()
     comments = CourseCommentSerializer(many=True, read_only=True)
-    lessons = LessonSerializer(many=True, read_only=True)
+    lessons = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Course
         fields = ['id', 'title', 'author', 'author_name', 'price', 'students_count',
                   'description', 'created', 'lessons', 'comments']
+        
+    def get_lessons(self, obj):
+        context = self.context.copy()
+        context['called_from_course'] = True
+        return LessonSerializer(obj.lessons.all(), many=True,
+                                context=context, read_only=True).data
 
     def get_students_count(self, obj):
         return len(obj.students)

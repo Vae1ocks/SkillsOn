@@ -64,7 +64,7 @@ class CourseViewSet(ModelViewSet):
             return serializers.CourseDetailSerializer
         if self.action in ['create', 'update', 'partial_update']:
             return serializers.CourseCreateSerializer
-    
+
     def get_permissions(self):
         if self.action == 'create':
             return [IsAuthenticated()]
@@ -136,6 +136,16 @@ class LessonViews(RetrieveUpdateDestroyAPIView):
     
     def perform_update(self, serializer):
         serializer.save(moderated=False)
+
+    def retrieve(self, request, *args, **kwargs):
+        instance = self.get_object()
+        user_id = request.user.id
+        if user_id not in instance.users_seen:
+            instance.users_seen.append(user_id)
+            instance.save()
+        serializer = self.get_serializer(instance)
+        return Response(serializer.data)
+    
     
 class CourseCommentCreateView(CreateAPIView):
     serializer_class = serializers.CourseCommentSerializer

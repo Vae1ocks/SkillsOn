@@ -86,10 +86,11 @@ class Lesson(models.Model):
                                related_name='lessons')
     
     title = models.CharField(max_length=200)
-    slug = models.CharField(max_length=200) # мб убрать
+    slug = models.CharField(max_length=200)
     order = OrderField(blank=True, fields=['course'])
     draft = models.BooleanField(default=True)
     moderated = models.BooleanField(default=False)
+    users_seen = models.JSONField(default=list)
 
     published = LessonManager()
     objects = models.Manager()
