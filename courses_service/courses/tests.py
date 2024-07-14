@@ -13,7 +13,7 @@ def category_create(title='TestCategory'):
     return Category.objects.create(title=title, slug=slugify(title))
 
 
-def course_create(category, author='test@test.com',
+def course_create(category, author=1,
                   title='TestCourse',
                   price=Decimal(0), description='Test desc for course',
                   draft=False, moderated=True, students=[]):
@@ -23,7 +23,7 @@ def course_create(category, author='test@test.com',
                                  draft=draft,moderated=moderated, students=students)
 
 
-def setup(author='test@test.com', cat_title='TestCategory', course_title='TestCourse'):
+def setup(author=1, cat_title='TestCategory', course_title='TestCourse'):
     category = category_create(title=cat_title)
     course = course_create(category=category, author=author, title=course_title)
     return course
@@ -73,7 +73,7 @@ class TestCourses(APITestCase):
         self.assertTrue(is_authenticated)
 
         data = {
-            'author': self.email,
+            'author': user.id,
             'title' : 'test_course',
             'category': category.title,
             'description': 'some description',
@@ -102,7 +102,7 @@ class TestCourses(APITestCase):
 
     def test_course_partial_update(self):
         user = self.create_user()
-        course = setup(author=user.email)
+        course = setup(author=user.id)
         
         is_authenticated = self.client.login(username=self.username, email='test@test.com', password=self.password)
         self.assertTrue(is_authenticated)
@@ -119,7 +119,7 @@ class TestCourses(APITestCase):
 
     def test_course_delete(self):
         user = self.create_user()
-        course = setup(author=user.email)
+        course = setup(author=user.id)
         
         is_authenticated = self.client.login(username=self.username, email='test@test.com', password=self.password)
         self.assertTrue(is_authenticated)
@@ -131,7 +131,7 @@ class TestCourses(APITestCase):
 
     def test_course_comment_create(self):
         user = self.create_user()
-        course = setup(author=user.email)
+        course = setup(author=user.id)
 
         is_authenticated = self.client.login(username=self.username, password=self.password)
         self.assertTrue(is_authenticated)
@@ -146,14 +146,14 @@ class TestCourses(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         comment = CourseComment.objects.first()
         self.assertEqual(comment.body, data['body'])
-        self.assertEqual(comment.author, user.email)
+        self.assertEqual(comment.author, user.id)
         self.assertEqual(comment.course, Course.objects.get(id=data['course']))
 
     def test_course_comment_update(self):
         user = self.create_user()
-        course = setup(author=user.email)
+        course = setup(author=user.id)
         course2 = setup(cat_title='New category', course_title='Scnd course')
-        comment = CourseComment.objects.create(author=user.email, body='comment',
+        comment = CourseComment.objects.create(author=user.id, body='comment',
                                                course=course)
         
         is_authenticated = self.client.login(username=self.username, password=self.password)
@@ -171,8 +171,8 @@ class TestCourses(APITestCase):
 
     def test_course_partial_update(self):
         user = self.create_user()
-        course = setup(author=user.email)
-        comment = CourseComment.objects.create(author=user.email, body='comment',
+        course = setup(author=user.id)
+        comment = CourseComment.objects.create(author=user.id, body='comment',
                                                course=course)
         
         is_authenticated = self.client.login(username=self.username, password=self.password)
@@ -190,8 +190,8 @@ class TestCourses(APITestCase):
 
     def test_course_comment_destroy(self):
         user = self.create_user()
-        course = setup(author=user.email)
-        comment = CourseComment.objects.create(author=user.email, body='comment',
+        course = setup(author=user.id)
+        comment = CourseComment.objects.create(author=user.id, body='comment',
                                                course=course)
         
         is_authenticated = self.client.login(username=self.username, password=self.password)
@@ -206,7 +206,7 @@ class TestCourses(APITestCase):
     def create_lesson(self):
         user = self.create_user()
         self.user = user
-        course = setup(author=user.email)
+        course = setup(author=user.id)
         self.client.login(username=self.username, email='test@test.com', password=self.password)
         
         data = {
@@ -335,13 +335,13 @@ class TestCourses(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         comment = LessonComment.objects.first()
         self.assertEqual(comment.body, data['body'])
-        self.assertEqual(comment.author, self.user.email)
+        self.assertEqual(comment.author, self.user.id)
         self.assertEqual(comment.lesson, Lesson.objects.get(id=data['lesson']))
 
     def test_lesson_comment_update(self):
         course, data = self.create_lesson()
         lesson = Lesson.objects.first()
-        comment = LessonComment.objects.create(author=self.user.email, body='comment',
+        comment = LessonComment.objects.create(author=self.user.id, body='comment',
                                                lesson=lesson)
      
         is_authenticated = self.client.login(username=self.username, password=self.password)
@@ -363,7 +363,7 @@ class TestCourses(APITestCase):
     def test_lesson_comment_partial_update(self):
         course, data = self.create_lesson()
         lesson = Lesson.objects.first()
-        comment = LessonComment.objects.create(author=self.user.email, body='comment',
+        comment = LessonComment.objects.create(author=self.user.id, body='comment',
                                                lesson=lesson)
      
         is_authenticated = self.client.login(username=self.username, password=self.password)
@@ -382,7 +382,7 @@ class TestCourses(APITestCase):
     def test_lesson_comment_destroy(self):
         course, data = self.create_lesson()
         lesson = Lesson.objects.first()
-        comment = LessonComment.objects.create(author=self.user.email, body='comment',
+        comment = LessonComment.objects.create(author=self.user.id, body='comment',
                                                lesson=lesson)
      
         is_authenticated = self.client.login(username=self.username, password=self.password)
@@ -393,60 +393,3 @@ class TestCourses(APITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(LessonComment.objects.exists())
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-    ''' Сериализатор не предоставляет всю необходимую информацию о моделе, а именно
-        не хватает students, пока не вижу смысла в подобном сериализаторе
-
-    def test_course_update(self):
-        user = self.create_user()
-        course = setup(author=user.email)
-        course_data = serializers.CourseDetailSerializer(course).data
-        course_put_data = {**course_data, 'title': '12345'}
-
-        is_authenticated = self.client.login(username=self.username, email='test@test.com', password=self.password)
-        self.assertTrue(is_authenticated)
-        
-        url = reverse('courses:course-detail', args=(course.id, ))
-        response = self.client.put(url, course_put_data, format='json')
-        self.assertEqual(response.status_code, 200)
-        
-        response = self.client.get(url)
-        self.assertEqual(response.json(), course_put_data)
-    '''

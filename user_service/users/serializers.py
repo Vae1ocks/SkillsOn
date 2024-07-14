@@ -10,9 +10,9 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = get_user_model()
-        fields = ['email', 'first_name', 'last_name',
+        fields = ['id', 'first_name', 'last_name',
                   'profile_picture', 'about_self', 'categories_liked',
-                  'payouts', 'password']
+                  'payouts', 'password', 'balance']
         extra_kwargs = {'password': {'write_only' : True}}
         
     def create(self, validated_data):
@@ -49,8 +49,8 @@ class ChangePasswordSerializer(serializers.Serializer):
                                          validators=[validate_password])
     
     def validate_old_password(self, value):
-        user_email = self.context['request'].user
-        user = get_user_model().objects.get(email=user_email)
+        user_id = self.context['request'].user.id
+        user = get_user_model().objects.get(id=user_id)
         if not user.check_password(value):
             raise serializers.ValidationError('Введённый текущий пароль неверный')
         return value
@@ -63,8 +63,8 @@ class ChangePasswordSerializer(serializers.Serializer):
         return attrs
     
     def save(self, **kwargs):
-        user_email = self.context['request'].user
-        user = get_user_model().objects.get(email=user_email)
+        user_id = self.context['request'].user.id
+        user = get_user_model().objects.get(id=user_id)
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
@@ -73,12 +73,12 @@ class ChangePasswordSerializer(serializers.Serializer):
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ['id', 'first_name', 'last_name', 'email', 'profile_picture']
+        fields = ['id', 'first_name', 'last_name', 'profile_picture']
 
 
 class ChatSerializer(serializers.ModelSerializer):
     users = serializers.ListField(
-        child=serializers.EmailField(),
+        child=serializers.IntegerField(),
         write_only=True
     )
     user_detail = UserListSerializer(many=True, read_only=True, source='users')
@@ -88,15 +88,15 @@ class ChatSerializer(serializers.ModelSerializer):
         fields = ['id', 'users', 'user_detail']
 
     def create(self, validated_data):
-        user_emails = validated_data.pop('users')
-        users = get_user_model().objects.filter(email__in=user_emails)
+        users_ids = validated_data.pop('users')
+        users = get_user_model().objects.filter(id__in=users_ids)
         chat = Chat.objects.create()
         chat.users.set(users)
         return chat
     
 
 class MessageSerializer(serializers.ModelSerializer):
-    author = serializers.ReadOnlyField(source='author.email')
+    author = serializers.ReadOnlyField(source='author.id')
 
     class Meta:
         model = Message
@@ -114,4 +114,4 @@ class ChatDetailSerializer(serializers.ModelSerializer):
 class OtherUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = get_user_model()
-        fields = ['first_name', 'last_name', 'profile_picture', 'about_self']
+        fields = ['id', 'first_name', 'last_name', 'profile_picture', 'about_self']

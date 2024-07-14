@@ -161,7 +161,7 @@ class LessonCommentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context.get('request')
         user = request.user
-        validated_data['author'] = user.email
+        validated_data['author'] = user.id
         validated_data['author_name'] = f'{user.first_name} {user.last_name[0]}.'
         return super().create(validated_data)
     
@@ -227,7 +227,7 @@ class CourseCommentSerializer(serializers.ModelSerializer):
     def create(self, validated_data):
         request = self.context.get('request')
         user = request.user
-        validated_data['author'] = user.email
+        validated_data['author'] = user.id
         validated_data['author_name'] = f'{user.first_name} {user.last_name[0]}.'
         return super().create(validated_data)
     
@@ -266,9 +266,8 @@ class CourseDetailSerializer(serializers.ModelSerializer):
 class CourseCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Course
-        fields = ['author', 'title', 'category',
-                  'description', 'draft',
-                  'moderated', 'price']
+        fields = ['author', 'title', 'category', 'description',
+                  'draft', 'moderated', 'price']
         
     def create(self, validated_data):
         slug = slugify(unidecode(validated_data['title']))

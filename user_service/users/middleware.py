@@ -10,8 +10,8 @@ from channels.db import database_sync_to_async
 def get_user(token):
     try:
         token_decode = AccessToken(token)
-        email = token_decode['email']
-        user = get_user_model().objects.get(email=email)    
+        id = token_decode['id']
+        user = get_user_model().objects.get(id=id)    
         return user
     except (InvalidToken, TokenError, get_user_model().DoesNotExist):
         return AnonymousUser()

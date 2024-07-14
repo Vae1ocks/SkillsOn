@@ -4,6 +4,7 @@ from rest_framework import status
 from django.contrib.auth import get_user_model
 from unittest.mock import patch
 from .models import Chat, Message
+from decimal import Decimal
 import json
 
 
@@ -118,7 +119,7 @@ class TestUser(APITestCase):
         user2 = self.user_create(email='testemail@test.com')
         self.client.login(username=self.email, password=self.password)
         url = reverse('users:chat_list')
-        data = {'users': ['test@test.com', 'testemail@test.com']}
+        data = {'users': [user.id, user2.id]}
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 201)
@@ -136,8 +137,12 @@ class TestUser(APITestCase):
         content = json.loads(response.content)
         users_detail = content[0]['user_detail']
         self.assertEqual(len(users_detail), 2)
-        self.assertEqual(users_detail[0]['email'], user.email)
-        self.assertEqual(users_detail[1]['email'], user2.email)
+        self.assertEqual(users_detail[0]['id'], user.id)
+        self.assertEqual(users_detail[1]['id'], user2.id)
+        self.assertEqual(users_detail[0]['first_name'], user.first_name)
+        self.assertEqual(users_detail[1]['first_name'], user2.first_name)
+        self.assertEqual(users_detail[0]['last_name'], user.last_name)
+        self.assertEqual(users_detail[1]['last_name'], user2.last_name)
         self.assertEqual(users_detail[0]['profile_picture'], user.profile_picture)
         self.assertEqual(users_detail[1]['profile_picture'], user2.profile_picture)
 
@@ -155,5 +160,32 @@ class TestUser(APITestCase):
         content = json.loads(response.content)
         self.assertIn('messages', content)
         self.assertEqual(content['messages'][0]['text'], message.text)
-        self.assertEqual(content['messages'][0]['author'], message.author.email)
+        self.assertEqual(content['messages'][0]['author'], message.author.id)
         self.assertEqual(content['messages'][0]['chat'], message.chat.id)
+
+    def test_user_list(self):
+        user = self.user_create()
+        user2 = self.user_create(email='testemail@test.com')
+        self.client.login(username=self.email, password=self.password)
+        url = reverse('users:user_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        content = json.loads(response.content)
+        fields = ['id', 'first_name', 'last_name', 'profile_picture']
+        for field in fields:
+            self.assertIn(field, content[0])
+
+    def test_user_detail(self):
+        user = self.user_create()
+        self.client.login(username=self.email, password=self.password)
+        url = reverse('users:user_detail', args=[user.id])
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, 200)
+        content = json.loads(response.content)
+        fields = ['first_name', 'last_name',
+                  'profile_picture', 'about_self', 'categories_liked',
+                  'payouts', 'balance']
+        for field in fields:
+            self.assertIn(field, content)
+        self.assertEqual(Decimal(content['balance']), 0)
+        

@@ -26,7 +26,7 @@ class CourseDetailView(RetrieveAPIView):
 
     def get_object(self):
         course = super().get_object()
-        if course.draft and course.author != self.request.user.email:
+        if course.draft and course.author != self.request.user.id:
             return Response({'detail': 'course not found'}, status=status.HTTP_404_NOT_FOUND)
         return course
     
@@ -53,7 +53,7 @@ class CourseViewSet(ModelViewSet):
         if self.action == 'list':
             return super().get_object()
         obj = super().get_object()
-        if not obj.moderated and obj.author != self.request.user.email:
+        if not obj.moderated and obj.author != self.request.user.id:
             raise NotFound(detail='Course not found')
         return obj
 
@@ -102,7 +102,7 @@ class CourseViewSet(ModelViewSet):
 
     def retrieve(self, request, *args, **kwargs):
         course = self.get_object()
-        if course.draft and course.author != request.author.email:
+        if (not course.moderated or course.draft) and (course.author != request.user.id):
             return Response({'detail': 'course_not_found'}, status=status.HTTP_404_NOT_FOUND)
         serializer = self.get_serializer(course)
         return Response(serializer.data)
@@ -127,7 +127,7 @@ class LessonViews(RetrieveUpdateDestroyAPIView):
     def get_queryset(self):
         if self.request.method in SAFE_METHODS:
             return Lesson.published.all()
-        return Lesson.objects.filter(course__author=self.request.user.email)
+        return Lesson.objects.filter(course__author=self.request.user.id)
     
     def get_permissions(self):
         if self.request.method in SAFE_METHODS:

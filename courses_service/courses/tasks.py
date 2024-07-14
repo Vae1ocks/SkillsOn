@@ -36,6 +36,7 @@ def handle_user_personal_info_updated_event():
                           auto_ack=True)
     channel.start_consuming()
 
+'''
 def handle_user_email_updated_event():
     connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
     channel = connection.channel()
@@ -63,18 +64,21 @@ def handle_user_email_updated_event():
     channel.basic_consume(queue=queue_name, on_message_callback=email_update,
                           auto_ack=True)
     channel.start_consuming()
+'''
 
 @shared_task
 def start_user_personal_info_updated_consumer():
     user_personal_info_updated_consumer = Thread(target=handle_user_personal_info_updated_event)
     user_personal_info_updated_consumer.start()
 
+'''
 @shared_task
 def start_user_email_updated_consumer():
     user_email_updated_consumer = Thread(target=handle_user_email_updated_event)
     user_email_updated_consumer.start()
+'''
 
 @worker_ready.connect
 def start(sender, **kwargs):
     start_user_personal_info_updated_consumer.delay()
-    start_user_email_updated_consumer.delay()
+    # start_user_email_updated_consumer.delay()

@@ -27,7 +27,7 @@ class CourseManager(models.Manager):
 
 
 class Course(models.Model):
-    author = models.EmailField()
+    author = models.PositiveIntegerField()
     author_name = models.CharField(max_length=250, blank=True)
     students = models.JSONField(default=list)
     category = models.ForeignKey(Category,
@@ -53,15 +53,15 @@ class Course(models.Model):
             self.slug = slugify(unidecode(self.title))
         super(Course, self).save(*args, **kwargs)
 
-    def is_student(self, user_email):
-        return user_email in self.students
+    def is_student(self, user_id):
+        return user_id in self.students
     
 
 class Comment(models.Model):
     class Meta:
         abstract = True
     
-    author = models.EmailField()
+    author = models.PositiveIntegerField()
     author_name = models.CharField(max_length=250, blank=True)
     body = models.TextField()
     created = models.DateTimeField(auto_now_add=True)

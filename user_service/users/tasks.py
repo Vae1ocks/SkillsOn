@@ -20,8 +20,8 @@ def send_confirmation_code(body, email):
 
 
 @shared_task
-def user_personal_info_updated_event(user_email, **kwargs):
-    if 'first_name' in kwargs or 'last_name' in kwargs: # убрать localhost
+def user_personal_info_updated_event(user_id, **kwargs):
+    if 'first_name' in kwargs or 'last_name' in kwargs:
         connection = pika.BlockingConnection(pika.ConnectionParameters('rabbitmq'))
         channel = connection.channel()
         channel.exchange_declare(exchange='user_update',
@@ -31,11 +31,11 @@ def user_personal_info_updated_event(user_email, **kwargs):
             если пользователь не обновляет first/last_name, всё равно его получаем
             и обновляем вместе с ним.
             '''
-            'user_email': user_email,
+            'user_id': user_id,
             'first_name': kwargs.get('first_name',
-                                     get_user_model().objects.get(email=user_email).first_name),
+                                     get_user_model().objects.get(id=user_id).first_name),
             'last_name': kwargs.get('last_name', 
-                                    get_user_model().objects.get(email=user_email).last_name)
+                                    get_user_model().objects.get(id=user_id).last_name)
         })
 
         channel.basic_publish(exchange='user_update',

@@ -166,9 +166,6 @@ class ExampleView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get(self, request):
-        print('Ща чёт будет')
-        request.user.email = 'user@user.com'
-        print(request.user)
         return Response({"message": f"Hello, {request.user.email}! \
                          Your name is {request.user.first_name} + {request.user.last_name}"})
 
