@@ -8,6 +8,7 @@ from decimal import Decimal
 from django.contrib.contenttypes.models import ContentType
 from django.utils.text import slugify
 from django.contrib.auth import get_user_model
+import responses
 
 
 def category_create(title='TestCategory'):
@@ -50,16 +51,34 @@ class TestCourses(APITestCase):
                                         password=self.password, first_name=self.first_name,
                                         last_name=self.last_name)
 
+    @responses.activate
     def test_courses_list(self):
-        category = category_create()
-        course1 = course_create(category=category)
+        user = self.create_user()
+        is_authenticated = self.client.login(username=self.username, password=self.password)
+        self.assertTrue(is_authenticated)
+        category1 = category_create(title='1st cat')
+        category2 = category_create(title='2nd cat')
+        category3 = category_create(title='3rd cat')
+
+        responses.add(responses.GET, f'http://testserver/users/user/{user.id}/personal-preferences/',
+                      json=[
+                          {
+                              'id': category1.id,
+                              'title': category1.title
+                          },
+                          {
+                              'id': category2.id,
+                              'title': category2.title
+                          }
+                      ])
+        
+        course1 = course_create(category=category1)
         course2 = course_create(title='TestCourse2',
-                                category=category, price=Decimal(100), students=[1,2,3,4,5])
+                                category=category2, price=Decimal(100), students=[1,2,3,4,5])
         course3 = course_create(title='TestCourse3',
-                                category=category, price=Decimal(100), students=[1,2])
+                                category=category3, price=Decimal(100), students=[1,2])
 
         url = reverse('courses:course-list')
-        user = get_user_model().objects.create(username='Test', password='tesetsdttw2')
         response = self.client.get(url)
         response.user = user
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -67,9 +86,27 @@ class TestCourses(APITestCase):
         self.assertEqual(response.json()[0], serializers.CourseSerializer(
             course2, context={'request': response}).data)
         self.assertEqual(response.json()[1], serializers.CourseSerializer(
-            course3, context={'request': response}).data)
-        self.assertEqual(response.json()[2], serializers.CourseSerializer(
             course1, context={'request': response}).data)
+        self.assertEqual(response.json()[2], serializers.CourseSerializer(
+            course3, context={'request': response}).data)
+        
+    def test_user_courses_list(self):
+        user = self.create_user()
+        is_authenticated = self.client.login(username=self.username, password=self.password)
+        self.assertTrue(is_authenticated)
+        course = setup(author=user.id)
+        course.students.append(user.id)
+        course.save()
+        url = reverse('courses:user_courses_list')
+        
+        response = self.client.get(url)
+        response.user = user
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data), 1)
+        self.assertEqual(data[0], serializers.UserCourseSerializer(
+            course, context={'request': response}).data)
+        self.assertTrue(data[0]['is_owner'])
 
     def test_course_create(self):
         category = category_create()
@@ -133,6 +170,29 @@ class TestCourses(APITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Course.objects.exists())
+
+    @responses.activate
+    def test_courses_search(self):
+        user = self.create_user()
+        self.client.login(username=self.username, password=self.password)
+        category = category_create(title='Category')
+        course1 = course_create(category=category, title='First course')
+        course2 = course_create(category=category, title='Almost first course')
+        course3 = course_create(category=category, title='Third course')
+        responses.add(responses.GET, f'http://testserver/users/user/{user.id}/personal-preferences/',
+                      json=[
+                          {
+                              'id': course1.category_id,
+                              'title': course1.category.title
+                          }
+                      ])
+        url = reverse('courses:course-list')
+        response = self.client.get(url, data={'title': 'FIRST'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.json()), 2)
+        data = response.json()
+        self.assertEqual(data[0]['title'], course1.title)
+        self.assertEqual(data[1]['title'], course2.title)
 
     def test_course_comment_create(self):
         user = self.create_user()

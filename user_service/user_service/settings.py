@@ -139,8 +139,8 @@ DATABASES = {
         'NAME': 'user_service',
         'USER': 'admin',
         'PASSWORD': 'admin',
-        'HOST': 'db_user',
-        'PORT': '5432',
+        #'HOST': 'db_user',
+        #'PORT': '5432',
     }
 }
 
@@ -212,22 +212,34 @@ CORS_ALLOW_HEADERS = (
 
 EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
 
-CELERY_BROKER_URL = 'amqp://guest:guest@rabbitmq:5672'
-CELERY_RESULT_BACKEND = 'rpc://'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC'
-CELERY_IMPORTS = (
+from kombu import Queue, Exchange
+
+CELERY_BROKER_URL = 'amqp://guest:guest@localhost:5672'
+CELERY_result_backend = 'rpc://'
+CELERY_accept_content = ['json']
+CELERY_task_serializer = 'json'
+CELERY_result_serializer = 'json'
+CELERY_timezone = 'UTC'
+CELERY_imports = (
     'users.tasks',
 )
-
-
+'''
+CELERY_QUEUES = (
+    Queue('user_service_queue', Exchange('user_service', type='topic'),
+          routing_key='user_service.#')
+)
+CELERY_ROUTES = {
+    'user_service.*': {
+        'queue': 'user_service_queue',
+        'routing_key': 'user_service.#'
+    }
+}
+'''
 CHANNEL_LAYERS = {
     'default': {
         'BACKEND': 'channels_redis.core.RedisChannelLayer',
         'CONFIG': {
-            'hosts': [('127.0.0.1', 6379)],
+            'hosts': [('redis', 6379)],
         }
     }
 }

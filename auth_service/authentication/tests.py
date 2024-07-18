@@ -64,11 +64,23 @@ class AuthServiceTest(APITestCase):
 
     @responses.activate
     def test_registration_categories_choice_get(self):
-        responses.add(responses.GET, 'http://127.0.0.1:8002/category-list/',
-                      json=[{'title': '1st category'},
-                            {'title': '2nd category'},
-                            {'title': '3rd category'},
-                            {'title': '4th category'}
+        responses.add(responses.GET, 'http://testserver/courses/category-list/',
+                      json=[{
+                                'id': 1,
+                                'title': '1st category'
+                            },
+                            {
+                                'id': 2,
+                                'title': '2nd category'
+                            },
+                            {
+                                'id': 3,
+                                'title': '3rd category'
+                            },
+                            {
+                                'id': 4,
+                                'title': '4th category'
+                            }
                         ])
         
         session = self.client.session
@@ -87,7 +99,7 @@ class AuthServiceTest(APITestCase):
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(len(response.json()), 4)
-        self.assertEqual(response.json()[0], {'title': '1st category'})
+        self.assertEqual(response.json()[0], {'id': 1, 'title': '1st category'})
 
     @patch('authentication.tasks.user_created_event.delay')
     def test_registration_categories_choice_post(self, mock_user_created_event):
@@ -102,10 +114,22 @@ class AuthServiceTest(APITestCase):
         session['registration_data'] = reg_data
         session.save()
 
-        categories_liked_data = [{'title': '1st category'},
-                                 {'title': '2nd category'},
-                                 {'title': '3rd category'},
-                                 {'title': '4th category'}
+        categories_liked_data = [{
+                                     'id': 1,
+                                     'title': '1st category'
+                                 },
+                                 {
+                                     'id': 2,
+                                     'title': '2nd category'
+                                 },
+                                 {
+                                     'id': 3,
+                                     'title': '3rd category'
+                                 },
+                                 {
+                                     'id': 4,
+                                     'title': '4th category'
+                                 }
         ]
         url = reverse('authentication:registration_category_choice')
         response = self.client.post(url, categories_liked_data, format='json')
@@ -113,10 +137,22 @@ class AuthServiceTest(APITestCase):
         mock_user_created_event.assert_called_once()
 
     def test_registration_categories_choice_post_forbidden(self):
-        categories_liked_data = [{'title': '1st category'},
-                                 {'title': '2nd category'},
-                                 {'title': '3rd category'},
-                                 {'title': '4th category'}
+        categories_liked_data = [{
+                                     'id': 1,
+                                     'title': '1st category'
+                                 },
+                                 {
+                                     'id': 2,
+                                     'title': '2nd category'
+                                 },
+                                 {
+                                     'id': 3,
+                                     'title': '3rd category'
+                                 },
+                                 {
+                                     'id': 4,
+                                     'title': '4th category'
+                                 }
         ]
         url = reverse('authentication:registration_category_choice')
         response = self.client.post(url, categories_liked_data, format='json')

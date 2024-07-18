@@ -8,7 +8,7 @@ from . import models
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Category
-        fields = ['title']
+        fields = ['id', 'title']
 
 
 class TextSerializer(serializers.ModelSerializer):
@@ -251,13 +251,26 @@ class CourseCommentSerializer(serializers.ModelSerializer):
 class CourseSerializer(serializers.ModelSerializer):
     students_count = serializers.SerializerMethodField()
     category = CategorySerializer(read_only=True)
-    lessons_seen = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Course
-        fields = ['title', 'author', 'author_name', 'category', 'price',
-                  'students_count', 'lessons_seen']
+        fields = ['id', 'title', 'author', 'author_name', 'category', 'price',
+                  'students_count']
     
+    def get_students_count(self, obj):
+        return len(obj.students)
+    
+
+class UserCourseSerializer(serializers.ModelSerializer):
+    students_count = serializers.SerializerMethodField()
+    lessons_seen = serializers.SerializerMethodField()
+    is_owner = serializers.SerializerMethodField()
+
+    class Meta:
+        model = models.Course
+        fields = ['id', 'title', 'author', 'author_name', 'category',
+                  'price', 'students_count', 'lessons_seen', 'is_owner']
+        
     def get_lessons_seen(self, obj):
         lessons_seen = 0
         all_lessons = obj.lessons.count()
@@ -273,6 +286,9 @@ class CourseSerializer(serializers.ModelSerializer):
     
     def get_students_count(self, obj):
         return len(obj.students)
+    
+    def get_is_owner(self, obj):
+        return True if self.context['request'].user.id == obj.author else False
 
 
 class CourseDetailSerializer(serializers.ModelSerializer):

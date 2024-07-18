@@ -21,6 +21,7 @@ class ConfirmationCodeSerializer(serializers.Serializer):
 
 
 class CategorySerializer(serializers.Serializer):
+    id = serializers.IntegerField()
     title = serializers.CharField(max_length=150)
 
 

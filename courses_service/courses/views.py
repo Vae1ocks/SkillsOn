@@ -1,13 +1,17 @@
 from rest_framework.generics import ListAPIView, \
     CreateAPIView, UpdateAPIView, RetrieveUpdateDestroyAPIView, DestroyAPIView
 from rest_framework.viewsets import ModelViewSet
+from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
 from rest_framework.exceptions import NotFound, ValidationError
+from django.db.models import Case, When, Value, IntegerField
 from . import serializers
 from .models import Course, Category, Lesson, CourseComment, LessonComment
 from .permissions import IsAuthor, IsStudent, IsAuthorOrStudent
+import requests
+import json
 
 
 class CategoryListView(ListAPIView):
@@ -46,7 +50,27 @@ class CourseUpdateView(UpdateAPIView):
 class CourseViewSet(ModelViewSet):
     def get_queryset(self):
         if self.action == 'list':
-            return Course.published.all()
+            if self.request.user.is_authenticated:
+                base_uri = self.request.build_absolute_uri('/')
+                relative_url = f'users/user/{self.request.user.id}/personal-preferences/'
+                url = f'{base_uri}{relative_url}'
+                response = requests.get(url)
+                if response.status_code == 200:
+                    categories_liked = response.json()
+                    categories_ids = [category['id'] for category in categories_liked]
+                    queryset = Course.published.all().annotate(
+                        is_liked=Case(
+                            When(category_id__in=categories_ids, then=Value(1)),
+                            default=Value(0),
+                            output_field=IntegerField()
+                        )
+                    ).order_by('-is_liked', '-price', '-students_count')
+                else: queryset = Course.published.all()
+            else: queryset = Course.published.all()
+            title = self.request.query_params.get('title', None)
+            if title:
+                queryset = queryset.filter(title__icontains=title)
+            return queryset
         return Course.objects.all()
     
     def get_object(self):
@@ -107,10 +131,21 @@ class CourseViewSet(ModelViewSet):
         serializer = self.get_serializer(course)
         return Response(serializer.data)
     
+    def lidst(self, request, *args, **kwargs):
+        self.list
+    
     def perform_destroy(self, instance):
         if len(instance.students) != 0:
             return Response({'detail': 'more than 0 students'}, status=status.HTTP_403_FORBIDDEN)
         instance.delete()
+
+
+class UserCourseListView(ListAPIView):
+    permission_classes = [IsAuthenticated]
+    serializer_class = serializers.UserCourseSerializer
+
+    def get_queryset(self):
+        return Course.published.filter(students__contains=self.request.user.id)
 
 
 class LessonCreateView(CreateAPIView):

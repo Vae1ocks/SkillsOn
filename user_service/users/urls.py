@@ -16,5 +16,7 @@ urlpatterns = [
     path('chat/', views.ChatListView.as_view(), name='chat_list'),
     path('chat/<int:pk>/', views.ChatRetrieveView.as_view(), name='chat_retrieve'),
     path('user-list/', views.UserListView.as_view(), name='user_list'),
-    path('user/<int:pk>/', views.UserDetailView.as_view(), name='user_detail')
+    path('user/<int:pk>/', views.UserDetailView.as_view(), name='user_detail'),
+    path('user/<int:id>/personal-preferences/',
+         views.UserPreferencesView.as_view(), name='user_preferences'),
 ]

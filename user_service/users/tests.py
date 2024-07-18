@@ -4,6 +4,7 @@ from rest_framework import status
 from django.contrib.auth import get_user_model
 from unittest.mock import patch
 from .models import Chat, Message
+from . import serializers
 from decimal import Decimal
 import json
 
@@ -11,8 +12,8 @@ import json
 class TestUser(APITestCase):
     def user_create(self, email='test@test.com', password='testpassword45',
                     first_name='Test', last_name='User'):
-        self.categories_liked = [{'title': 'cat1'}, {'title': 'cat2'},
-                                 {'title': 'cat3'}, {'title': 'cat4'}],
+        self.categories_liked = [{'id': 1, 'title': 'cat1'}, {'id': 2, 'title': 'cat2'},
+                                 {'id': 3, 'title': 'cat3'}, {'id': 4, 'title': 'cat4'}]
         self.email = email
         self.password = password
         return get_user_model().objects.create_user(
@@ -22,7 +23,19 @@ class TestUser(APITestCase):
             last_name=last_name,
             categories_liked=self.categories_liked
         )
-    '''
+    
+    def test_user_personal_info_get(self):
+        user = self.user_create()
+        url = reverse('users:personal_info_update')
+        is_authenticated = self.client.login(username=self.email, password=self.password)
+        self.assertTrue(is_authenticated)
+
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        serializer = serializers.UserPersonalInfoSerializer(user)
+        self.assertEqual(data, serializer.data)
+    
     @patch('users.tasks.user_personal_info_updated_event.delay')
     def test_user_personal_info_update(self, mock_send_confirmation_code):
         user = self.user_create()
@@ -113,7 +126,7 @@ class TestUser(APITestCase):
         mock_user_password_updated_event.assert_called_once()
         user.refresh_from_db()
         self.assertTrue(user.check_password(data['new_password']))
-    '''
+
     def test_chat_create(self):
         user = self.user_create()
         user2 = self.user_create(email='testemail@test.com')

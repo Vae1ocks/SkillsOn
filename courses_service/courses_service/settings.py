@@ -164,17 +164,29 @@ CORS_ALLOW_HEADERS = (
     "x-requested-with",
 )
 
+from kombu import Queue, Exchange
+
 CELERY_BROKER_URL = 'amqp://guest:guest@rabbitmq:5672'
-CELERY_RESULT_BACKEND = 'rpc://'
-CELERY_ACCEPT_CONTENT = ['json']
-CELERY_TASK_SERIALIZER = 'json'
-CELERY_RESULT_SERIALIZER = 'json'
-CELERY_TIMEZONE = 'UTC'
-CELERY_IMPORTS = (
+CELERY_result_backend = 'rpc://'
+CELERY_accept_content = ['json']
+CELERY_task_serializer = 'json'
+CELERY_result_serializer = 'json'
+CELERY_timezone = 'UTC'
+CELERY_imports = (
     'courses.tasks',
 )
-
-
+'''
+CELERY_QUEUES = (
+    Queue('courses_service_queue', Exchange('courses_service', type='topic'),
+          routing_key='courses_service.#')
+)
+CELERY_ROUTES = {
+    'courses_service.*': {
+        'queue': 'courses_service_queue',
+        'routing_key': 'courses_service.#'
+    }
+}
+'''
 YOOKASSA_SECRET_KEY = 'test_XNy-Fi909xFYLCXW6w-mMZBIfIjEm4vHgQA3H4WhDZs'
 YOOKASSA_ACCOUNT_ID = 415869
 

@@ -12,6 +12,7 @@ urlpatterns = [
     path('category-list/', views.CategoryListView.as_view(), name='categories_list'),
 
     path('/', include(router.urls)),
+    path('user-courses/list/', views.UserCourseListView.as_view(), name='user_courses_list'),
     path('<slug:slug>/<int:pk>/', views.CourseViewSet.as_view({'get': 'retrieve',
                                                                'put': 'update',
                                                                'patch': 'partial_update',
@@ -23,7 +24,6 @@ urlpatterns = [
          name='course_comment_update'),
     path('course-comment/<int:pk>/delete/', views.CourseCommentDestroyView.as_view(),
          name='course_comment_delete'),
-
     path('lesson/create/', views.LessonCreateView.as_view(), name='lesson_create'),
     path('lesson/<slug:slug>/<int:pk>/', views.LessonViews.as_view(), name='lesson_detail_views'),
     path('lesson/<slug:slug>/<int:pk>/comment/create/', views.LessonCommentCreateView.as_view(),

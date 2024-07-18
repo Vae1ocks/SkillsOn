@@ -11,7 +11,7 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from rest_framework_simplejwt.views import TokenObtainPairView
-from .tasks import user_password_reset_event, user_created_event
+from celery import current_app
 import datetime
 import requests
 import random
@@ -51,7 +51,9 @@ class RegistrationCategoryChoiceView(APIView):
     def get(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
             return Response({'detail': 'Email not confirmed'}, status=status.HTTP_403_FORBIDDEN)
-        url = 'http://127.0.0.1:8002/category-list/'
+        base_uri = request.build_absolute_uri('/')
+        relative_url = 'courses/category-list/'
+        url = f'{base_uri}{relative_url}'
         response = requests.get(url)
         if response.status_code == 200:
             categories = response.json()
@@ -72,7 +74,11 @@ class RegistrationCategoryChoiceView(APIView):
                 full_reg_data['categories_liked'].append(category)
             user_serializer = UserSerializer(data=registration_data)
             if user_serializer.is_valid():
-                user_created_event.delay(**full_reg_data)
+                current_app.send_task(
+                    'user_service.create_user',
+                    kwargs={**full_reg_data},
+                    queue='user_service_queue'
+                )
                 user_serializer.save()
                 return Response(user_serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -146,7 +152,13 @@ class PasswordResetNewPasswordView(APIView):
             user_exists = get_user_model().objects.filter(email=email).exists()
             if user_exists:
                 user = get_user_model().objects.get(email=email)
-                user_password_reset_event.delay(email=email, new_password=password)
+                current_app.send_task(
+                    'user_service.update_reset_password',
+                    kwargs={
+                        'email': email,
+                        'new_password': password
+                    }, queue='user_service_queue'
+                )
                 user.set_password(password)
                 user.save()
                 request.session.pop('is_email_confirmed', None)

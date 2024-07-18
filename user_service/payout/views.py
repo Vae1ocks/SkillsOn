@@ -1,12 +1,12 @@
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.response import Response
 from rest_framework import status
 from django.contrib.auth import get_user_model
 from .models import UserPayout
-from .tasks import check_payout_status
 from yookassa import Payout, Configuration
 from django.conf import settings
 import uuid

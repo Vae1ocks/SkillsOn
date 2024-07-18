@@ -8,23 +8,33 @@ from .permissions import IsRequestUserProfile
 from .models import Chat
 from . import serializers
 from django.contrib.auth import get_user_model
-from . import tasks
+from django.db.models import Q
+from celery import current_app
+from .tasks import send_confirmation_code
 import random
 
 
 class UserPersonalInfoUpdateView(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
 
+    def get(self, request, *args, **kwargs):
+        user = get_user_model().objects.get(id=request.user.id)
+        serializer = serializers.UserPersonalInfoSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)
+    
     def post(self, request, *args, **kwargs):
         serializer = serializers.UserPersonalInfoSerializer(data=request.data)
         if serializer.is_valid():
             validated_data = serializer.validated_data
             id = request.user.id
             if 'first_name' in validated_data or 'last_name' in validated_data:
-                tasks.user_personal_info_updated_event.delay(
-                    user_id=id,
-                    first_name=validated_data.get('first_name'),
-                    last_name=validated_data.get('last_name')
+                current_app.send_task(
+                    'courses_service.update_personal_info',
+                    kwargs={
+                        'user_id': id,
+                        'first_name': validated_data.get('first_name'),
+                        'last_name': validated_data.get('last_name')
+                    }, queue='courses_service_queue'
                 )
             user = get_user_model().objects.get(id=id)
             for attr, val in validated_data.items():
@@ -42,7 +52,7 @@ class ConfirmationOldEmailView(APIView):
         request.session['confirmation_code'] = confirmation_code
         user = get_user_model().objects.get(id=request.user.id)
         body = f'Ваш код для подтверждения текущей почты: {confirmation_code}'
-        tasks.send_confirmation_code.delay(body=body, email=user.email)
+        send_confirmation_code.delay(body=body, email=user.email)
         return Response({'detail': 'Код был выслан'}, status=status.HTTP_200_OK)
     
     def post(self, request, *args, **kwargs):
@@ -74,7 +84,7 @@ class EmailUpdateSetNewEmailView(APIView):
                     confirmation_code = random.randint(100000, 999999)
                     request.session['confirmation_code'] = confirmation_code
                     body = f'Код подтверждения для смены почты: {confirmation_code}'
-                    tasks.send_confirmation_code.delay(body=body, email=email)
+                    send_confirmation_code.delay(body=body, email=email)
                     request.session.pop('email_confirmated')
                     return Response({'detail': 'Код подтверждения выслан'},
                                     status=status.HTTP_200_OK)
@@ -98,8 +108,13 @@ class EmailUpdateFinish(APIView):
                 if exp_code == entered_code:
                     email = serializer.validated_data['email']
                     user = get_user_model().objects.get(id=request.user.id)
-                    tasks.user_email_updated_event.delay(old_user_email=user.email,
-                                                   new_user_email=email)
+                    current_app.send_task(
+                        'auth_service.update_user_email',
+                         kwargs={
+                         'old_user_email': user.email,
+                         'new_user_email': email
+                        }, queue='auth_service_queue'
+                    )
                     user.email = email
                     user.save()
                     return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
@@ -119,9 +134,12 @@ class PasswordChangeView(APIView):
             context={'request': request}
         )
         if serializer.is_valid():
-            tasks.user_password_updated_event.delay(
-                email=get_user_model().objects.get(id=request.user.id).email,
-                password=serializer.validated_data['new_password']
+            current_app.sent_task(
+                'auth_service.update_user_password',
+                kwargs={
+                    'email': get_user_model().objects.get(id=request.user.id).email,
+                    'password': serializer.validated_data['new_password']
+                }, queue='auth_service_queue'
             )
             serializer.save()
             return Response({'detail': 'Пароль успешно обновлён'},
@@ -149,8 +167,29 @@ class ChatRetrieveView(RetrieveDestroyAPIView):
 
 class UserListView(ListAPIView):
     serializer_class = serializers.UserListSerializer
-    queryset = get_user_model().objects.all()
-
+    
+    def get_queryset(self):
+        name = self.request.query_params.get('name')
+        if name:
+            name = name.split()
+            if len(name) == 2:
+                first_value, second_value = name
+                queryset = get_user_model().objects.filter(
+                    Q(first_name__icontains=first_value,
+                    last_name__icontains=second_value) |
+                    Q(first_name__icontains=second_value,
+                      last_name__icontains=first_value)
+                )
+            elif len(name) > 2:
+                queryset = []
+            else:
+                name = name[0]
+                queryset = get_user_model().objects.filter(
+                    Q(first_name__icontains=name) | Q(last_name__icontains=name)
+                )
+            return queryset
+        return get_user_model().objects.none()
+    
 
 class UserDetailView(RetrieveAPIView):
     queryset = get_user_model().objects.all()
@@ -159,3 +198,11 @@ class UserDetailView(RetrieveAPIView):
         if self.request.user.id == self.get_object().id:
             return serializers.UserSerializer
         return serializers.OtherUserSerializer
+    
+
+class UserPreferencesView(APIView):
+    def get(self, request, id, *args, **kwargs):
+        user_id = id
+        user = get_user_model().objects.get(id=user_id)
+        categories_liked = user.categories_liked
+        return Response(categories_liked, status=status.HTTP_200_OK)

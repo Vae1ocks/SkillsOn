@@ -4,7 +4,7 @@ from rest_framework import status
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.conf import settings
-from .tasks import user_profit_income_event
+from celery import current_app
 import stripe.error
 from payment.models import Order
 from courses.models import Course
@@ -21,7 +21,13 @@ def payment_succeeded(order):
     course.save()
 
     user_profit = order.price * 0.8
-    user_profit_income_event.delay(author=course.author, profit=user_profit)
+    current_app.send_task(
+        'user_service.profit_income',
+        kwargs={
+            'user_id': course.author,
+            'profit': user_profit
+        }, queue='user_service_queue'
+    )
 
 
 @method_decorator(csrf_exempt, name='dispatch')
