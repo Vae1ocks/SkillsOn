@@ -8,6 +8,7 @@ from celery import current_app
 import stripe.error
 from payment.models import Order
 from courses.models import Course
+from drf_spectacular.utils import extend_schema
 import stripe
 
 
@@ -68,6 +69,10 @@ class YooKassaPaymentWebhook(APIView):
             ip = request.META.get('REMOTE_ADDR')
         return ip
     
+    @extend_schema(
+            description='Во фронте не нужно, сюда Yookassa отправит уведомление об оплате '
+                        'Т.е этот ендпоинт для взаимодействия бэка с юкассой'
+    )
     def post(self, request, *args, **kwargs):
         allowed_ips = [
             '185.71.76.0/27',

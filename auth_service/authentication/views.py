@@ -2,40 +2,42 @@ from rest_framework.views import APIView
 from rest_framework import generics
 from rest_framework import status
 from rest_framework.response import Response
-from .serializers import UserSerializer, ConfirmationCodeSerializer,\
-    CategorySerializer, EmailSerializer, PasswordSerializer, EmailTokenObtainPairSerializer
+from .serializers import *
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login
 from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
+from .tasks import send_confiramtion_code
 from rest_framework_simplejwt.views import TokenObtainPairView
 from celery import current_app
+from drf_spectacular.utils import extend_schema, inline_serializer
 import datetime
 import requests
 import random
-import jwt
 
 
 class RegistrationView(APIView):
+    serializer_class = UserSerializer # Только для drf_spectacular
+
     def post(self, request, *args, **kwargs):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             confirmation_code = random.randint(100000, 999999)
             request.session['confirmation_code'] = confirmation_code
             request.session['registration_data'] = serializer.validated_data
-            send_mail(
-                'Confirmate your email',
-                f'Your confirmation code: {confirmation_code}', # Тут нужна асинхронность
-                settings.EMAIL_HOST_USER,
-                [serializer.validated_data['email']]
+            send_confiramtion_code.delay(
+                email=serializer.validated_data['email'],
+                body=f'Your confirmation code: {confirmation_code}'
             )
             return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 
 class RegistrationConfirmationView(APIView):
+    serializer_class = ConfirmationCodeSerializer # Только для drf_spectacular
+
     def post(self, request, *args, **kwargs):
         serializer = ConfirmationCodeSerializer(data=request.data)
         if serializer.is_valid():
@@ -43,14 +45,19 @@ class RegistrationConfirmationView(APIView):
                 request.session['is_email_confirmed'] = True
                 request.session.pop('confirmation_code')
                 return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
-            return Response({'code': 'Confirmation code is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'code': 'Неверный код подтверждения'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class RegistrationCategoryChoiceView(APIView):
+    serializer_class = CategorySerializer # Только для drf_spectacular
+
+    @extend_schema(
+        description='Возвращает список json-объектов, что показаны в примере. [{...}, {...}, {...}]',
+    )
     def get(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
-            return Response({'detail': 'Email not confirmed'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'detail': 'Почта не подтверждена'}, status=status.HTTP_403_FORBIDDEN)
         base_uri = request.build_absolute_uri('/')
         relative_url = 'courses/category-list/'
         url = f'{base_uri}{relative_url}'
@@ -58,16 +65,21 @@ class RegistrationCategoryChoiceView(APIView):
         if response.status_code == 200:
             categories = response.json()
             return Response(categories, status=status.HTTP_200_OK)
-        return Response({'detail': 'Unable to fetch categories'}, status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response({'detail': 'Невозможно получить категории'},
+                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
+    @extend_schema(
+        description='Возвращает список json-объектов, что показаны в примере. [{...}, {...}, {...}]',
+    )
     def post(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
-            return Response({'detail': 'Email not confirmed'}, status=status.HTTP_403_FORBIDDEN)
+            return Response({'detail': 'Почта не подтверждена'}, status=status.HTTP_403_FORBIDDEN)
         serializer = CategorySerializer(data=request.data, many=True)
         if serializer.is_valid():
             registration_data = request.session.pop('registration_data', None)
             if not registration_data:
-                return Response({'detail': 'Registration data not found in session'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'Данные для регистрации не предоставлены'},
+                                status=status.HTTP_400_BAD_REQUEST)
             categories_liked = serializer.data
             full_reg_data = {**registration_data, 'categories_liked': []}
             for category in categories_liked:
@@ -85,29 +97,31 @@ class RegistrationCategoryChoiceView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
-class LoginView(APIView):
-    def post(self, request, *args, **kwargs):
-        email = request.data.get('email')
-        password = request.data.get('password')
-        if not email or not password:
-            return Response({'detail': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
-        user = authenticate(request,
-                            email=email,
-                            password=password)
-        if user is not None:
-            if user.is_active:
-                data = {
-                    'id': user.id,
-                    'exp': timezone.now() + datetime.timedelta('days=10'),
-                    'iat': timezone.now()
-                }
-                token = jwt.encode(data, settings.SECRET_KEY, algorithm='HS256')
-                return Response({'token': token}, status=status.HTTP_200_OK)
-            return Response({'detail': 'Account is banned'}, status=status.HTTP_403_FORBIDDEN)
-        return Response({'detail': 'Invalid data'}, status=status.HTTP_404_NOT_FOUND)
+# class LoginView(APIView):
+#     def post(self, request, *args, **kwargs):
+#         email = request.data.get('email')
+#         password = request.data.get('password')
+#         if not email or not password:
+#             return Response({'detail': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
+#         user = authenticate(request,
+#                             email=email,
+#                             password=password)
+#         if user is not None:
+#             if user.is_active:
+#                 data = {
+#                     'id': user.id,
+#                     'exp': timezone.now() + datetime.timedelta('days=10'),
+#                     'iat': timezone.now()
+#                 }
+#                 token = jwt.encode(data, settings.SECRET_KEY, algorithm='HS256')
+#                 return Response({'token': token}, status=status.HTTP_200_OK)
+#             return Response({'detail': 'Account is banned'}, status=status.HTTP_403_FORBIDDEN)
+#         return Response({'detail': 'Invalid data'}, status=status.HTTP_404_NOT_FOUND)
     
 
 class PasswordResetView(APIView):
+    serializer_class = EmailSerializer # Только для drf_spectacular
+
     def post(self, request, *args, **kwargs):
         serializer = EmailSerializer(data=request.data)
         if serializer.is_valid():
@@ -124,12 +138,14 @@ class PasswordResetView(APIView):
                     [email]
                 )
                 return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
-            return Response({'detail': 'Invalid email, user not found'},
+            return Response({'detail': 'Неверный email'},
                             status=status.HTTP_404_NOT_FOUND)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class PasswordResetConfirmationView(APIView):
+    serializer_class = ConfirmationCodeSerializer # Только для drf_spectacular
+
     def post(self, request, *args, **kwargs):
         serializer = ConfirmationCodeSerializer(data=request.data)
         if serializer.is_valid():
@@ -137,11 +153,13 @@ class PasswordResetConfirmationView(APIView):
                 request.session['is_email_confirmed'] = True
                 request.session.pop('confirmation_code')
                 return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
-            return Response({'code': 'Confirmation code is incorrect'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'code': 'Неверный код подтверждения'}, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 
 class PasswordResetNewPasswordView(APIView):
+    serializer_class = PasswordSerializer # Только для drf_spectacular
+
     def post(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
             return Response({'detail': 'Email not confirmed'}, status=status.HTTP_403_FORBIDDEN)
@@ -163,8 +181,9 @@ class PasswordResetNewPasswordView(APIView):
                 user.save()
                 request.session.pop('is_email_confirmed', None)
                 request.session.pop('email', None)
-                return Response({'detail': 'Password updated successfully'}, status=status.HTTP_200_OK)
-            return Response({'detail': 'invalid email, user not found'}, status=status.HTTP_400_BAD_REQUEST)
+                return Response({'detail': 'Пароль успешно обновлён'}, status=status.HTTP_200_OK)
+            return Response({'detail': 'Неверный email, пользователь не найден'},
+                            status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
 from rest_framework_simplejwt.authentication import JWTTokenUserAuthentication

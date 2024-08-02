@@ -17,6 +17,7 @@ Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
 
 class YookassaPaymentView(APIView):
     permission_classes = [IsAuthenticated]
+    serializer_class = OrderSerializer
     
     def post(self, request, *args, **kwargs):
         serializer = OrderSerializer(data=request.data)

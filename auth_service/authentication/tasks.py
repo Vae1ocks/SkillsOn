@@ -1,5 +1,18 @@
 from celery import shared_task
 from django.contrib.auth import get_user_model
+from django.core.mail import send_mail
+from django.conf import settings
+
+
+@shared_task
+def send_confiramtion_code(email, body):
+    send_mail(
+        'Код подтверждения',
+        body,
+        settings.EMAIL_HOST_USER,
+        [email],
+        fail_silently=False
+    )
 
 
 @shared_task(name='auth_service.update_user_email')

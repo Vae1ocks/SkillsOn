@@ -9,6 +9,8 @@ from django.contrib.auth import get_user_model
 from .models import UserPayout
 from yookassa import Payout, Configuration
 from django.conf import settings
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiExample
+from .serializers import serializers
 import uuid
 
 Configuration.account_id = settings.YOOKASSA_ACCOUNT_ID
@@ -16,7 +18,22 @@ Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
 
 class YooKassaPayoutView(APIView):
     permission_classes = [IsAuthenticated]
-
+    
+    @extend_schema(
+            request=inline_serializer(
+                name='YooKassaPayoutSerializer',
+                fields={
+                    'payout_token': serializers.CharField(),
+                    'value': serializers.IntegerField()
+                }
+            ),
+            responses={
+                202: inline_serializer(
+                    name='PayoutCreated',
+                    fields={'detail': serializers.CharField}
+                )
+            }
+    )  
     def post(self, request, *args, **kwargs):
         payout_token = request.data.get('payout_token')
         value = request.data.get('value')

@@ -156,13 +156,17 @@ class ContentSerializer(serializers.ModelSerializer):
 class LessonCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.LessonComment
-        fields = ['id', 'author_name', 'body', 'created', 'lesson']
+        fields = ['id', 'author_name', 'author_image', 'body', 'created', 'lesson']
 
     def create(self, validated_data):
         request = self.context.get('request')
+        first_name = self.context.get('first_name')
+        last_name = self.context.get('last_name')
+        author_image = self.context.get('author_image')
         user = request.user
         validated_data['author'] = user.id
-        validated_data['author_name'] = f'{user.first_name} {user.last_name[0]}.'
+        validated_data['author_name'] = f'{first_name} {last_name[0]}.'
+        validated_data['author_image'] = author_image
         return super().create(validated_data)
     
     def update(self, instance, validated_data):
@@ -234,18 +238,32 @@ class LessonSerializer(serializers.ModelSerializer):
 class CourseCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.CourseComment
-        fields = ['id', 'body', 'created', 'course']
+        fields = ['id', 'author_name', 'author_image', 'rating', 'body', 'created', 'course']
 
     def create(self, validated_data):
         request = self.context.get('request')
         user = request.user
+        first_name = self.context.get('first_name')
+        last_name = self.context.get('last_name')
+        author_image = self.context.get('author_image')
         validated_data['author'] = user.id
-        validated_data['author_name'] = f'{user.first_name} {user.last_name[0]}.'
+        validated_data['author_name'] = f'{first_name} {last_name[0]}.'
+        validated_data['author_image'] = author_image
         return super().create(validated_data)
     
     def update(self, instance, validated_data):
         validated_data.pop('course', None)
         return super().update(instance, validated_data)
+    
+    def validate_rating(self, value):
+        if self.instance:
+            if value is None:
+                return self.instance.rating
+            return value
+        else:
+            if value is None:
+                raise serializers.ValidationError('Рейтинг не предоставлен')
+            return value
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -254,8 +272,8 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Course
-        fields = ['id', 'title', 'author', 'author_name', 'category', 'price',
-                  'students_count']
+        fields = ['id', 'title', 'level', 'author', 'author_name', 'author_image',
+                  'category', 'price', 'students_count']
     
     def get_students_count(self, obj):
         return len(obj.students)
@@ -268,14 +286,14 @@ class UserCourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Course
-        fields = ['id', 'title', 'author', 'author_name', 'category',
-                  'price', 'students_count', 'lessons_seen', 'is_owner']
+        fields = ['id', 'title', 'author', 'author_name', 'author_image', 'category',
+                  'price', 'level', 'students_count', 'lessons_seen', 'is_owner']
         
     def get_lessons_seen(self, obj):
         lessons_seen = 0
         all_lessons = obj.lessons.count()
         user_id = self.context['request'].user.id
-        if user_id not in obj.students:
+        if user_id not in obj.students or user_id == obj.author:
             return 'N/A'
         if all_lessons == 0:
             return '0%'
@@ -298,8 +316,8 @@ class CourseDetailSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Course
-        fields = ['id', 'title', 'author', 'author_name', 'price', 'students_count',
-                  'description', 'created', 'lessons', 'comments']
+        fields = ['id', 'title', 'author', 'author_name', 'author_image', 'price', 'students_count',
+                  'description', 'level', 'created', 'lessons', 'comments']
         
     def get_lessons(self, obj):
         context = self.context.copy()
@@ -315,11 +333,14 @@ class CourseCreateSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Course
         fields = ['author', 'title', 'category', 'description',
-                  'draft', 'moderated', 'price']
+                  'draft', 'moderated', 'price', 'level']
         
     def create(self, validated_data):
         slug = slugify(unidecode(validated_data['title']))
         user = self.context.get('request').user
-        author_name = f'{user.first_name} {user.last_name[0]}.'
+        first_name = self.context.get('first_name')
+        last_name = self.context.get('last_name')
+        author_image = self.context.get('author_image')
+        author_name = f'{first_name} {last_name[0]}.'
         return models.Course.objects.create(**validated_data, slug=slug,
-                                            author_name=author_name)
+                                            author_name=author_name, author_image=author_image)

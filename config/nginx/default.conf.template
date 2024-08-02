@@ -20,11 +20,11 @@ server {
     ssl_certificate /edproj/config/ssl/selfsigned.crt;
     ssl_certificate_key /edproj/config/ssl/selfsigned.key;
 
-    location static/ {
+    location /auth/static/ {
         alias /auth_service/static/;
     }
 
-    location media/ {
+    location /auth/media/ {
         alias /auth_service/media/;
     }
 
@@ -44,7 +44,7 @@ server {
         alias /user_service/media/;
     }
 
-    location /auth {
+    location /auth/ {
         include /etc/nginx/uwsgi_params;
         uwsgi_pass auth_service;
     }

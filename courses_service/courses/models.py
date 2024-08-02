@@ -5,6 +5,7 @@ from django.utils import timezone
 from django.urls import reverse
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+from django.core.validators import MinValueValidator, MaxValueValidator
 from .fields import OrderField
 from django.utils.text import slugify
 from unidecode import unidecode
@@ -19,6 +20,9 @@ class Category(models.Model):
     title = models.CharField(max_length=150, unique=True)
     slug = models.CharField(max_length=150, unique=True) # slug пока не надо, мб удалить в будущем
 
+    def __str__(self):
+        return f'Category {self.title}'
+
 
 class CourseManager(models.Manager):
     def get_queryset(self):
@@ -29,16 +33,32 @@ class CourseManager(models.Manager):
 class Course(models.Model):
     author = models.PositiveIntegerField()
     author_name = models.CharField(max_length=250, blank=True)
-    students = models.JSONField(default=list)
+    author_image = models.ImageField(upload_to='courses/%Y/%m/%d/', blank=True, null=True)
+
+    students = models.JSONField(default=list, blank=True)
+
     category = models.ForeignKey(Category,
                                  related_name='courses',
                                  on_delete=models.PROTECT)
 
     title = models.CharField(max_length=200)
-    slug = models.CharField(max_length=200)
+    slug = models.CharField(max_length=200, blank=True)
     price = models.DecimalField(max_digits=8, decimal_places=2)
     description = models.TextField()
     created = models.DateTimeField(auto_now_add=True)
+    rating = models.DecimalField(max_digits=3, decimal_places=2, default=0)
+
+    LEVEL_CHOICES = (
+        ('high', 'Высокий'),
+        ('medium', 'Средний'),
+        ('low', 'Начальный'),
+    )
+    level = models.CharField(
+        max_length=15,
+        choices=LEVEL_CHOICES,
+        default='low'
+    )
+
     draft = models.BooleanField(default=True)
     moderated = models.BooleanField(default=False)
 
@@ -63,7 +83,10 @@ class Comment(models.Model):
     
     author = models.PositiveIntegerField()
     author_name = models.CharField(max_length=250, blank=True)
+    author_image = models.ImageField(upload_to='comments/%Y/%m/%d/', blank=True, null=True)
+
     body = models.TextField()
+
     created = models.DateTimeField(auto_now_add=True)
 
 
@@ -71,6 +94,11 @@ class CourseComment(Comment):
     course = models.ForeignKey(Course,
                                on_delete=models.CASCADE,
                                related_name='comments')
+    
+    rating = models.PositiveIntegerField(
+        validators=[MinValueValidator(1), MaxValueValidator(5)]
+    )    
+
     def __str__(self):
         return f'course comment by {self.author}: {self.body}'
     
@@ -90,7 +118,7 @@ class Lesson(models.Model):
     order = OrderField(blank=True, fields=['course'])
     draft = models.BooleanField(default=True)
     moderated = models.BooleanField(default=False)
-    users_seen = models.JSONField(default=list)
+    users_seen = models.JSONField(default=list, blank=True)
 
     published = LessonManager()
     objects = models.Manager()

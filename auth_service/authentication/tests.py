@@ -18,8 +18,9 @@ def user_create(email='test@test.com', password='testpassword45',
 
 
 class AuthServiceTest(APITestCase):
-    def test_registration(self):
-        from django.core.mail import outbox
+    
+    @patch('authentication.tasks.send_confiramtion_code.delay')
+    def test_registration(self, mock_send_confiramtion_code):
         url = reverse('authentication:registration_user_data')
         data = {
             'email': 'test@test.com',
@@ -36,10 +37,7 @@ class AuthServiceTest(APITestCase):
         self.assertEqual(session['registration_data']['password'], data['password'])
         self.assertEqual(session['registration_data']['first_name'], data['first_name'])
         self.assertEqual(session['registration_data']['last_name'], data['last_name'])
-        self.assertEqual(len(outbox), 1)
-        message = outbox[0]
-        confirmation_code = int(message.body[-6:])
-        self.assertEqual(session['confirmation_code'], confirmation_code)
+        mock_send_confiramtion_code.assert_called_once()
 
     def test_registration_confirmation_code(self):
         session = self.client.session
@@ -101,8 +99,8 @@ class AuthServiceTest(APITestCase):
         self.assertEqual(len(response.json()), 4)
         self.assertEqual(response.json()[0], {'id': 1, 'title': '1st category'})
 
-    @patch('authentication.tasks.user_created_event.delay')
-    def test_registration_categories_choice_post(self, mock_user_created_event):
+    @patch('authentication.views.current_app.send_task')
+    def test_registration_categories_choice_post(self, mock_send_task):
         reg_data = {
             'email': 'test@test.com',
             'first_name': 'Test',
@@ -134,7 +132,14 @@ class AuthServiceTest(APITestCase):
         url = reverse('authentication:registration_category_choice')
         response = self.client.post(url, categories_liked_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
-        mock_user_created_event.assert_called_once()
+        full_reg_data = {**reg_data, 'categories_liked': []}
+        for category in categories_liked_data:
+            full_reg_data['categories_liked'].append(category)
+        mock_send_task.assert_called_with(
+            'user_service.create_user',
+            kwargs={**full_reg_data},
+            queue='user_service_queue'
+        )
 
     def test_registration_categories_choice_post_forbidden(self):
         categories_liked_data = [{
@@ -207,8 +212,8 @@ class TestPasswordReset(APITestCase):
         self.assertTrue(session['is_email_confirmed'])
         self.assertNotIn('confirmation_code', session)
 
-    @patch('authentication.tasks.user_password_reset_event.delay')
-    def test_password_reset_set_new_password(self, mock_user_password_reset_event):
+    @patch('authentication.views.current_app.send_task')
+    def test_password_reset_set_new_password(self, mock_send_task):
         email = 'iowhvbd@gmail.com'
         user = user_create(email=email)
 
@@ -230,4 +235,10 @@ class TestPasswordReset(APITestCase):
         self.assertNotIn('is_email_confirmed', session)
         self.assertNotIn('email', session)
         self.assertTrue(user.check_password(password))
-        mock_user_password_reset_event.assert_called_once()
+        mock_send_task.assert_called_with(
+            'user_service.update_reset_password',
+            kwargs={
+                'email': email,
+                'new_password': password
+            }, queue='user_service_queue'
+        )

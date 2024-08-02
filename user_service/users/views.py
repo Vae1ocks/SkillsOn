@@ -11,11 +11,13 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from celery import current_app
 from .tasks import send_confirmation_code
+from drf_spectacular.utils import extend_schema, inline_serializer
 import random
 
 
 class UserPersonalInfoUpdateView(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
+    serializer_class = serializers.UserPersonalInfoSerializer
 
     def get(self, request, *args, **kwargs):
         user = get_user_model().objects.get(id=request.user.id)
@@ -55,6 +57,7 @@ class ConfirmationOldEmailView(APIView):
         send_confirmation_code.delay(body=body, email=user.email)
         return Response({'detail': 'Код был выслан'}, status=status.HTTP_200_OK)
     
+    @extend_schema(request=serializers.ConfirmationCodeSerializer)
     def post(self, request, *args, **kwargs):
         serializer = serializers.ConfirmationCodeSerializer(data=request.data)
         if serializer.is_valid():
@@ -74,6 +77,7 @@ class ConfirmationOldEmailView(APIView):
 
 class EmailUpdateSetNewEmailView(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
+    serializer_class = serializers.EmailSerializer
 
     def post(self, request, *args, **kwargs):
         if request.session.get('email_confirmated'):
@@ -96,6 +100,7 @@ class EmailUpdateSetNewEmailView(APIView):
 
 class EmailUpdateFinish(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
+    serializer_class = serializers.EmailWithConfirmationCodeSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = serializers.EmailWithConfirmationCodeSerializer(
@@ -127,6 +132,7 @@ class EmailUpdateFinish(APIView):
 
 class PasswordChangeView(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
+    serializer_class = serializers.ChangePasswordSerializer
 
     def post(self, request, *args, **kwargs):
         serializer = serializers.ChangePasswordSerializer(
@@ -134,7 +140,7 @@ class PasswordChangeView(APIView):
             context={'request': request}
         )
         if serializer.is_valid():
-            current_app.sent_task(
+            current_app.send_task(
                 'auth_service.update_user_password',
                 kwargs={
                     'email': get_user_model().objects.get(id=request.user.id).email,
@@ -187,7 +193,7 @@ class UserListView(ListAPIView):
                 queryset = get_user_model().objects.filter(
                     Q(first_name__icontains=name) | Q(last_name__icontains=name)
                 )
-            return queryset
+            return queryset.exclude(id=self.request.user.id)
         return get_user_model().objects.none()
     
 
@@ -201,8 +207,18 @@ class UserDetailView(RetrieveAPIView):
     
 
 class UserPreferencesView(APIView):
+    @extend_schema(description='Для внутреннего бэкенд взаимодействия')
     def get(self, request, id, *args, **kwargs):
         user_id = id
         user = get_user_model().objects.get(id=user_id)
         categories_liked = user.categories_liked
         return Response(categories_liked, status=status.HTTP_200_OK)
+    
+
+class UserPersonalInfoView(APIView):
+    @extend_schema(description='Для внутреннего бэкенд взаимодействия')
+    def get(self, request, id, *args, **kwargs):
+        user_id = id
+        user = get_user_model().objects.get(id=user_id)
+        serializer = serializers.UserPersonalInfoSerializer(user)
+        return Response(serializer.data, status=status.HTTP_200_OK)

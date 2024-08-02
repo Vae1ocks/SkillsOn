@@ -11,31 +11,30 @@ from django.contrib.auth import get_user_model
 import responses
 
 
-def category_create(title='TestCategory'):
-    return Category.objects.create(title=title, slug=slugify(title))
-
-
-def course_create(category, author=1,
-                  title='TestCourse',
-                  price=Decimal(0), description='Test desc for course',
-                  draft=False, moderated=True, students=[]):
-    
-    return Course.objects.create(author=author, title=title, category=category,
-                                 slug=slugify(title), price=price, description=description,
-                                 draft=draft,moderated=moderated, students=students)
-
-
-def setup(author=1, cat_title='TestCategory', course_title='TestCourse'):
-    category = category_create(title=cat_title)
-    course = course_create(category=category, author=author, title=course_title)
-    return course
-
 @override_settings(REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': (
         'rest_framework.authentication.SessionAuthentication'
     )
 })
 class TestCourses(APITestCase):
+    def category_create(self, title='TestCategory'):
+        return Category.objects.create(title=title, slug=slugify(title))
+
+
+    def course_create(self, category, author=1,
+                    title='TestCourse',
+                    price=Decimal(0), description='Test desc for course',
+                    draft=False, moderated=True, students=[]):
+        
+        return Course.objects.create(author=author, title=title, category=category,
+                                    slug=slugify(title), price=price, description=description,
+                                    draft=draft,moderated=moderated, students=students)
+
+
+    def setup(self, author=1, cat_title='TestCategory', course_title='TestCourse'):
+        category = self.category_create(title=cat_title)
+        course = self.course_create(category=category, author=author, title=course_title)
+        return course
     
     def create_user(self, username='test_user',
                     email='test@test.com',
@@ -52,19 +51,19 @@ class TestCourses(APITestCase):
                                         last_name=self.last_name)
 
     @responses.activate
-    def test_courses_list(self):
+    def test_courses_overview(self):
         user = self.create_user()
         is_authenticated = self.client.login(username=self.username, password=self.password)
         self.assertTrue(is_authenticated)
-        category1 = category_create(title='1st cat')
-        category2 = category_create(title='2nd cat')
-        category3 = category_create(title='3rd cat')
+        category1 = self.category_create(title='1st cat')
+        category2 = self.category_create(title='2nd cat')
+        category3 = self.category_create(title='3rd cat')
 
         responses.add(responses.GET, f'http://testserver/users/user/{user.id}/personal-preferences/',
                       json=[
                           {
-                              'id': category1.id,
-                              'title': category1.title
+                              'id': category3.id,
+                              'title': category3.title
                           },
                           {
                               'id': category2.id,
@@ -72,29 +71,31 @@ class TestCourses(APITestCase):
                           }
                       ])
         
-        course1 = course_create(category=category1)
-        course2 = course_create(title='TestCourse2',
+        course1 = self.course_create(category=category1)
+        course2 = self.course_create(title='TestCourse2',
                                 category=category2, price=Decimal(100), students=[1,2,3,4,5])
-        course3 = course_create(title='TestCourse3',
+        course3 = self.course_create(title='TestCourse3',
                                 category=category3, price=Decimal(100), students=[1,2])
 
-        url = reverse('courses:course-list')
+        url = reverse('courses:overview')
         response = self.client.get(url)
-        response.user = user
+
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.json()), 3)
-        self.assertEqual(response.json()[0], serializers.CourseSerializer(
-            course2, context={'request': response}).data)
-        self.assertEqual(response.json()[1], serializers.CourseSerializer(
-            course1, context={'request': response}).data)
-        self.assertEqual(response.json()[2], serializers.CourseSerializer(
-            course3, context={'request': response}).data)
-        
+        data = response.json()
+        self.assertEqual(len(data), 4)
+        self.assertEqual(data['most_popular'][0], serializers.CourseSerializer(course2).data)
+        self.assertIn(category1.title, data)
+        self.assertIn(category2.title, data)
+        self.assertIn(category3.title, data)
+        self.assertEqual(data[category1.title], [])
+        self.assertEqual(data[category2.title], [])
+        self.assertEqual(data[category3.title], [])
+
     def test_user_courses_list(self):
         user = self.create_user()
         is_authenticated = self.client.login(username=self.username, password=self.password)
         self.assertTrue(is_authenticated)
-        course = setup(author=user.id)
+        course = self.setup(author=user.id)
         course.students.append(user.id)
         course.save()
         url = reverse('courses:user_courses_list')
@@ -108,11 +109,20 @@ class TestCourses(APITestCase):
             course, context={'request': response}).data)
         self.assertTrue(data[0]['is_owner'])
 
+    @responses.activate
     def test_course_create(self):
-        category = category_create()
+        category = self.category_create()
         user = self.create_user()
         is_authenticated = self.client.login(username=self.username, password=self.password)
         self.assertTrue(is_authenticated)
+
+        responses.add(responses.GET, f'http://testserver/users/user/{user.id}/personal-info/',
+                      json={
+                              'first_name': 'FirstName',
+                              'last_name': 'LastName',
+                              'profile_picture': None
+                      }
+                      )
 
         data = {
             'author': user.id,
@@ -128,14 +138,14 @@ class TestCourses(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         course = Course.objects.first()
         self.assertEqual(Category.objects.get(title=data['category']).id, course.category.id)
-        self.assertEqual(course.author_name, f'{user.first_name} {user.last_name[0]}.')
+        self.assertEqual(course.author_name, 'FirstName L.')
         self.assertEqual(course.author, data['author'])
         self.assertTrue(course.draft)
         self.assertFalse(course.moderated)
 
 
     def test_course_detail(self):
-        course = setup()
+        course = self.setup()
         url = reverse('courses:course_detail', args=(course.slug, course.id))
 
         response = self.client.get(url)
@@ -144,7 +154,7 @@ class TestCourses(APITestCase):
     
     def test_course_partial_update(self):
         user = self.create_user()
-        course = setup(author=user.id)
+        course = self.setup(author=user.id)
         
         is_authenticated = self.client.login(username=self.username, email='test@test.com', password=self.password)
         self.assertTrue(is_authenticated)
@@ -161,7 +171,7 @@ class TestCourses(APITestCase):
 
     def test_course_delete(self):
         user = self.create_user()
-        course = setup(author=user.id)
+        course = self.setup(author=user.id)
         
         is_authenticated = self.client.login(username=self.username, email='test@test.com', password=self.password)
         self.assertTrue(is_authenticated)
@@ -170,40 +180,50 @@ class TestCourses(APITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(Course.objects.exists())
-
+  
     @responses.activate
     def test_courses_search(self):
         user = self.create_user()
         self.client.login(username=self.username, password=self.password)
-        category = category_create(title='Category')
-        course1 = course_create(category=category, title='First course')
-        course2 = course_create(category=category, title='Almost first course')
-        course3 = course_create(category=category, title='Third course')
-        responses.add(responses.GET, f'http://testserver/users/user/{user.id}/personal-preferences/',
-                      json=[
-                          {
-                              'id': course1.category_id,
-                              'title': course1.category.title
-                          }
-                      ])
-        url = reverse('courses:course-list')
-        response = self.client.get(url, data={'title': 'FIRST'})
-        self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual(len(response.json()), 2)
-        data = response.json()
-        self.assertEqual(data[0]['title'], course1.title)
-        self.assertEqual(data[1]['title'], course2.title)
+        category = self.category_create(title='Category')
+        category1 = self.category_create(title='1st cat')
+        category2 = self.category_create(title='2nd cat')
+        category3 = self.category_create(title='3rd cat')
+        course1 = self.course_create(category=category, title='First course')
+        course2 = self.course_create(category=category1, title='Almost first course')
+        course3 = self.course_create(category=category2, title='Third course')
+        course4 = self.course_create(category=category2, title='Fourth course')
+        course5 = self.course_create(category=category3, title='Fifth course')
 
+        url = reverse('courses:course-list')
+        response = self.client.get(url, data={'title': 'FIRST',
+                                              'category': f'{category1.title.upper()}, {category.title}'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        data = response.json()
+        self.assertEqual(len(data), 2)
+        self.assertEqual(data[0], serializers.CourseSerializer(course1).data)
+        self.assertEqual(data[1], serializers.CourseSerializer(course2).data)
+
+    @responses.activate
     def test_course_comment_create(self):
         user = self.create_user()
-        course = setup(author=user.id)
+        course = self.setup(author=user.id)
+
+        responses.add(responses.GET, f'http://testserver/users/user/{user.id}/personal-info/',
+                      json={
+                              'first_name': 'FirstName',
+                              'last_name': 'LastName',
+                              'profile_picture': None
+                      }
+                      )
 
         is_authenticated = self.client.login(username=self.username, password=self.password)
         self.assertTrue(is_authenticated)
 
         data = {
             'body': 'course comment',
-            'course': 1
+            'course': course.id,
+            'rating': 5
         }
         url = reverse('courses:course_comment_create', args=(course.slug, course.id))
 
@@ -213,32 +233,39 @@ class TestCourses(APITestCase):
         self.assertEqual(comment.body, data['body'])
         self.assertEqual(comment.author, user.id)
         self.assertEqual(comment.course, Course.objects.get(id=data['course']))
+        course.refresh_from_db()
+        self.assertEqual(course.rating, 5)
 
     def test_course_comment_update(self):
         user = self.create_user()
-        course = setup(author=user.id)
-        course2 = setup(cat_title='New category', course_title='Scnd course')
+        course = self.setup(author=user.id)
+        course2 = self.setup(cat_title='New category', course_title='Scnd course')
         comment = CourseComment.objects.create(author=user.id, body='comment',
-                                               course=course)
+                                               rating=5, course=course)
         
         is_authenticated = self.client.login(username=self.username, password=self.password)
         self.assertTrue(is_authenticated)
 
-        data = {'body': 'new body', 'course': course2.pk}
+        course.refresh_from_db()
+        self.assertEqual(course.rating, 5)
+
+        data = {'body': 'new body', 'course': course2.pk, 'rating': 1}
         url = reverse('courses:course_comment_update', args=(comment.id, ))
 
         response = self.client.put(url, data, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
 
         comment = CourseComment.objects.first()
+        course.refresh_from_db()
+        self.assertEqual(course.rating, 1)
         self.assertEqual(comment.course, course)
         self.assertEqual(comment.body, data['body'])
 
     def test_course_partial_update(self):
         user = self.create_user()
-        course = setup(author=user.id)
+        course = self.setup(author=user.id)
         comment = CourseComment.objects.create(author=user.id, body='comment',
-                                               course=course)
+                                               rating=5, course=course)
         
         is_authenticated = self.client.login(username=self.username, password=self.password)
         self.assertTrue(is_authenticated)
@@ -255,9 +282,9 @@ class TestCourses(APITestCase):
 
     def test_course_comment_destroy(self):
         user = self.create_user()
-        course = setup(author=user.id)
+        course = self.setup(author=user.id)
         comment = CourseComment.objects.create(author=user.id, body='comment',
-                                               course=course)
+                                               rating=5, course=course)
         
         is_authenticated = self.client.login(username=self.username, password=self.password)
         self.assertTrue(is_authenticated)
@@ -271,7 +298,7 @@ class TestCourses(APITestCase):
     def create_lesson(self):
         user = self.create_user()
         self.user = user
-        course = setup(author=user.id)
+        course = self.setup(author=user.id)
         self.client.login(username=self.username, email='test@test.com', password=self.password)
         
         data = {
@@ -308,7 +335,7 @@ class TestCourses(APITestCase):
         response = self.client.post(url, data=data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         return course, data
-
+    
     def test_lesson_create(self):
         course, data = self.create_lesson()
 
@@ -325,7 +352,11 @@ class TestCourses(APITestCase):
             for content, exp_content in zip(lesson_data['contents'], data['contents']):
                 self.assertEqual(content['content_type'], exp_content['content_type'])
                 for key in exp_content['item']:
-                    self.assertEqual(content['item_data'][key], exp_content['item'][key])
+                    if '/courses/media/' in content['item_data'][key]:
+                        self.assertEqual(content['item_data'][key][len('/courses/media'): ],
+                                         exp_content['item'][key])
+                    else:
+                        self.assertEqual(content['item_data'][key], exp_content['item'][key])
 
         url = reverse('courses:course_detail', args=(course.slug, course.id))
 
@@ -383,11 +414,27 @@ class TestCourses(APITestCase):
         for content, exp_content in zip(contents, data['contents']):
             self.assertEqual(content['content_type'], exp_content['content_type'])
             for key in exp_content['item']:
-                self.assertEqual(content['item_data'][key], exp_content['item'][key])
+                if not isinstance(content['item_data'][key], (int, float, complex)):
+                    if '/courses/media/' in content['item_data'][key]:
+                        self.assertEqual(content['item_data'][key][len('/courses/media/')-1: ],
+                                        exp_content['item'][key])
+                    else:
+                        self.assertEqual(content['item_data'][key], exp_content['item'][key])
+                else:
+                    self.assertEqual(content['item_data'][key], exp_content['item'][key])
 
+    @responses.activate
     def test_lesson_comment_create(self):
         course, data = self.create_lesson()
         lesson = Lesson.objects.first()
+
+        responses.add(responses.GET, f'http://testserver/users/user/{self.user.id}/personal-info/',
+                      json={
+                              'first_name': 'FirstName',
+                              'last_name': 'LastName',
+                              'profile_picture': None
+                      }
+                      )
 
         self.client.login(username=self.username, email='test@test.com', password=self.password)
         url = reverse('courses:lesson_comment_create', args=(lesson.slug, lesson.id))

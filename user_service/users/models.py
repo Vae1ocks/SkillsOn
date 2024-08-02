@@ -38,8 +38,8 @@ class UserManager(BaseUserManager):
                                  profile_picture, about_self, categories_liked,
                                  balance, **extra_fields)
 
-    def create_superuser(self, email=None, password=None, first_name=None, last_name=None,
-                         profile_picture=None, about_self=None, categories_liked=None,
+    def create_superuser(self, email=None, password=None, first_name='Default', last_name='Name',
+                         profile_picture=None, about_self=None, categories_liked=[],
                          balance=Decimal('0.00'), **extra_fields):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)

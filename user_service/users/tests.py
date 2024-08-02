@@ -35,9 +35,9 @@ class TestUser(APITestCase):
         data = response.json()
         serializer = serializers.UserPersonalInfoSerializer(user)
         self.assertEqual(data, serializer.data)
-    
-    @patch('users.tasks.user_personal_info_updated_event.delay')
-    def test_user_personal_info_update(self, mock_send_confirmation_code):
+
+    @patch('users.views.current_app.send_task')
+    def test_user_personal_info_update(self, mock_send_task):
         user = self.user_create()
         data = {
             'first_name': 'New Name',
@@ -50,7 +50,14 @@ class TestUser(APITestCase):
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, 200)
-        mock_send_confirmation_code.assert_called_once()
+        mock_send_task.assert_called_with(
+            'courses_service.update_personal_info',
+            kwargs={
+                'user_id': user.id,
+                'first_name': data.get('first_name'),
+                'last_name': data.get('last_name')
+            }, queue='courses_service_queue'
+        )
         user.refresh_from_db()
         self.assertEqual(user.first_name, data['first_name'])
         self.assertEqual(user.last_name, data['last_name'])
@@ -92,8 +99,8 @@ class TestUser(APITestCase):
         user.refresh_from_db()
         self.assertNotEqual(user.email, data['email'])
 
-    @patch('users.tasks.user_email_updated_event.delay')
-    def test_user_email_confirmate_new_email(self, mock_user_email_updated_event):
+    @patch('users.views.current_app.send_task')
+    def test_user_email_confirmate_new_email(self, mock_send_task):
         user = self.user_create()
         self.client.login(username=self.email, password=self.password)
         session = self.client.session
@@ -107,12 +114,18 @@ class TestUser(APITestCase):
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_user_email_updated_event.assert_called_once()
+        mock_send_task.assert_called_with(
+            'auth_service.update_user_email',
+            kwargs={
+                'old_user_email': user.email,
+                'new_user_email': data['email']
+            }, queue='auth_service_queue'
+        )
         user.refresh_from_db()
         self.assertEqual(user.email, data['email'])
 
-    @patch('users.tasks.user_password_updated_event.delay')
-    def test_user_password_change(self, mock_user_password_updated_event):
+    @patch('users.views.current_app.send_task')
+    def test_user_password_change(self, mock_send_task):
         user = self.user_create()
         self.client.login(username=self.email, password=self.password)
         data = {
@@ -123,7 +136,13 @@ class TestUser(APITestCase):
 
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        mock_user_password_updated_event.assert_called_once()
+        mock_send_task.assert_called_with(
+            'auth_service.update_user_password',
+            kwargs={
+                'email': user.email,
+                'password': data['new_password']
+            }, queue='auth_service_queue'
+        )
         user.refresh_from_db()
         self.assertTrue(user.check_password(data['new_password']))
 
@@ -176,7 +195,7 @@ class TestUser(APITestCase):
         self.assertEqual(content['messages'][0]['author'], message.author.id)
         self.assertEqual(content['messages'][0]['chat'], message.chat.id)
 
-    def test_user_list(self):
+    def test_user_list_without_get_params(self):
         user = self.user_create()
         user2 = self.user_create(email='testemail@test.com')
         self.client.login(username=self.email, password=self.password)
@@ -185,8 +204,21 @@ class TestUser(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         content = json.loads(response.content)
         fields = ['id', 'first_name', 'last_name', 'profile_picture']
+        self.assertEqual(content, [])
+
+    def test_user_list_search(self):
+        user = self.user_create(first_name='John', last_name='Doe')
+        self.client.login(username=self.email, password=self.password)
+        user2 = self.user_create(email='testuseremail@test.com')
+        url = reverse('users:user_list')
+        response = self.client.get(url, {'name': 'tESt uSeR'})
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        content = json.loads(response.content)
+        self.assertEqual(len(content), 1)
+        fields = ['id', 'first_name', 'last_name', 'profile_picture']
         for field in fields:
-            self.assertIn(field, content[0])
+            self.assertEqual(content[0][field],
+                             serializers.UserListSerializer(user2).data[field])
 
     def test_user_detail(self):
         user = self.user_create()

@@ -11,7 +11,8 @@ router.register(r'', views.CourseViewSet, basename='course')
 urlpatterns = [
     path('category-list/', views.CategoryListView.as_view(), name='categories_list'),
 
-    path('/', include(router.urls)),
+    path('overview/', views.CourseOverviewList.as_view(), name='overview'),
+    path('', include(router.urls)),
     path('user-courses/list/', views.UserCourseListView.as_view(), name='user_courses_list'),
     path('<slug:slug>/<int:pk>/', views.CourseViewSet.as_view({'get': 'retrieve',
                                                                'put': 'update',

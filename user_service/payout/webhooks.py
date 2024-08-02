@@ -5,6 +5,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.contrib.auth import get_user_model
 from .models import UserPayout
+from drf_spectacular.utils import extend_schema
 
 
 @method_decorator(csrf_exempt, name='dispatch')
@@ -17,6 +18,7 @@ class YookassaPayoutWebhook(APIView):
             ip = request.META.get('REMOTE_ADDR')
         return ip
     
+    @extend_schema(description='Ендпонит только для ЮКассы, не дл фронта')
     def post(self, request, *args, **kwargs):
         allowed_ips = [
             '185.71.76.0/27',

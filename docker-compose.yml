@@ -101,6 +101,11 @@ services:
               uwsgi --ini /auth_service/config/uwsgi/uwsgi.ini"]
     volumes:
       - ./auth_service:/auth_service
+    environment:
+      - DJANGO_SETTINGS_MODULE=auth_service.settings.prod
+      - POSTGRES_DB=auth_service
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
     depends_on:
      - db_auth
 
@@ -109,6 +114,11 @@ services:
       context: ./auth_service 
     command: celery -A auth_service worker -l info
     restart: always
+    environment:
+      - DJANGO_SETTINGS_MODULE=auth_service.settings.prod
+      - POSTGRES_DB=auth_service
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
     depends_on:
       - auth_service
       - rabbitmq
@@ -121,6 +131,11 @@ services:
               uwsgi --ini /courses_service/config/uwsgi/uwsgi.ini"]
     volumes:
       - ./courses_service:/courses_service
+    environment:
+      - DJANGO_SETTINGS_MODULE=courses_service.settings.prod
+      - POSTGRES_DB=courses_service
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
     depends_on:
      - db_courses
 
@@ -129,6 +144,11 @@ services:
       context: ./courses_service 
     command: celery -A courses_service worker -l info
     restart: always
+    environment:
+      - DJANGO_SETTINGS_MODULE=courses_service.settings.prod
+      - POSTGRES_DB=courses_service
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
     depends_on:
       - courses_service
       - rabbitmq
@@ -141,6 +161,11 @@ services:
               uwsgi --ini /user_service/config/uwsgi/uwsgi.ini"]
     volumes:
      - ./user_service:/user_service
+    environment:
+      - DJANGO_SETTINGS_MODULE=user_service.settings.prod
+      - POSTGRES_DB=user_service
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
     depends_on:
       - db_user
 
@@ -152,6 +177,7 @@ services:
     volumes:
       - ./user_service:/user_service
     environment:
+      - DJANGO_SETTINGS_MODULE=user_service.settings.prod
       - POSTGRES_DB=user_service
       - POSTGRES_USER=admin
       - POSTGRES_PASSWORD=admin
@@ -164,6 +190,11 @@ services:
       context: ./user_service 
     command: celery -A user_service worker -l info
     restart: always
+    environment:
+      - DJANGO_SETTINGS_MODULE=user_service.settings.prod
+      - POSTGRES_DB=user_service
+      - POSTGRES_USER=admin
+      - POSTGRES_PASSWORD=admin
     depends_on:
       - user_service
       - rabbitmq
