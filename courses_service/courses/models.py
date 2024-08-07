@@ -139,6 +139,11 @@ class LessonComment(Comment):
     lesson = models.ForeignKey(Lesson,
                                on_delete=models.CASCADE,
                                related_name='comments')
+    reply_to = models.ForeignKey('self', on_delete=models.CASCADE, related_name='replies',
+                                 null=True, blank=True)
+    quote_text = models.CharField(max_length=210, null=True, blank=True)
+    is_note = models.BooleanField(default=False) # возможно оставлять как комментарии, так и заметки для себя
+
     def __str__(self):
         return f'lesson comment by {self.author}: {self.body}'
 

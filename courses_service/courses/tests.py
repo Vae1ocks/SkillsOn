@@ -507,3 +507,56 @@ class TestCourses(APITestCase):
         response = self.client.delete(url)
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         self.assertFalse(LessonComment.objects.exists())
+
+    def test_lesson_reply_comment_create(self):
+        course, data = self.create_lesson()
+        lesson = Lesson.objects.first()
+        comment = LessonComment.objects.create(author=self.user.id, body='comment',
+                                               lesson=lesson)
+        reply_comment = LessonComment.objects.create(author=self.user.id,
+                                                     body='reply_to_comment',
+                                                     lesson=lesson, reply_to=comment)
+        lesson_serializer = serializers.LessonSerializer(lesson).data
+        comment_serializer = serializers.LessonCommentSerializer(comment).data
+
+        self.assertEqual(len(lesson_serializer['comments']), 1)
+        self.assertEqual(lesson_serializer['comments'][0]['id'], comment.id)
+
+        self.assertEqual(len(comment_serializer['reply_comments']), 1)
+        self.assertEqual(comment_serializer['reply_comments'][0]['id'], reply_comment.id)
+
+    @responses.activate
+    def test_lesson_reply_comment_view_create(self):
+        course, data = self.create_lesson()
+        lesson = Lesson.objects.first()
+        comment = LessonComment.objects.create(author=self.user.id, body='comment',
+                                               lesson=lesson)
+        
+        responses.add(responses.GET, f'http://testserver/users/user/{self.user.id}/personal-info/',
+                      json={
+                              'first_name': 'FirstName',
+                              'last_name': 'LastName',
+                              'profile_picture': None
+                      }
+                      )
+
+        self.client.login(username=self.username, email='test@test.com', password=self.password)
+        url = reverse('courses:lesson_comment_create', args=(lesson.slug, lesson.id))
+
+        data = {
+            'body': 'lesson reply comment',
+            'lesson': lesson.pk,
+            'reply_to': comment.id
+        }
+        url = reverse('courses:lesson_comment_create', args=(lesson.slug, lesson.id))
+
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        reply_comment = LessonComment.objects.latest('id')
+        r_serializer = serializers.LessonCommentSerializer(reply_comment).data
+        comment.refresh_from_db()
+        c_serializer = serializers.LessonCommentSerializer(comment).data
+        self.assertEqual(len(c_serializer['reply_comments']), 1)
+        self.assertEqual(c_serializer['reply_comments'][0]['id'], reply_comment.id)
+        self.assertIsNone(r_serializer['reply_comments'])

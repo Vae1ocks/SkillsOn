@@ -41,22 +41,22 @@ class CourseOverviewList(GenericAPIView):
             }
     )
     def get(self, request, *args, **kwargs):
+        result = {}
+        categories_liked = []
+
+        most_liked = Course.published.all().order_by('-rating')[:60]
+        most_popular = Course.objects.annotate(student_count=Func(
+            'students', function='jsonb_array_length', output_field=IntegerField()
+        )).filter(id__in=most_liked.values('id')).order_by('-student_count')[:15]
+        most_popular_ids = most_popular.values('id')
+        most_popular_data = serializers.CourseSerializer(most_popular, many=True).data
+        result['most_popular'] = most_popular_data
+
         if self.request.user.is_authenticated:
             base_uri = self.request.build_absolute_uri('/')
             relative_url = f'users/user/{self.request.user.id}/personal-preferences/'
             url = f'{base_uri}{relative_url}'
             response = requests.get(url)
-            result = {}
-            categories_liked = []
-
-            most_liked = Course.published.all().order_by('-rating')[:60]
-            most_popular = Course.objects.annotate(student_count=Func(
-                'students', function='jsonb_array_length', output_field=IntegerField()
-            )).filter(id__in=most_liked.values('id')).order_by('-student_count')[:15]
-            most_popular_ids = most_popular.values('id')
-            most_popular_data = serializers.CourseSerializer(most_popular, many=True).data
-            result['most_popular'] = most_popular_data
-
             if response.status_code == 200: # [{'id': 5, 'title': 'title}, {'id': 6, 'title': 'titttle'}]
                 categories_liked = response.json()
                 categories_ids = [category['id'] for category in categories_liked]
@@ -67,14 +67,15 @@ class CourseOverviewList(GenericAPIView):
                     ).order_by('-rating')[:8]
                     data = serializers.CourseSerializer(rec_queryset, many=True).data
                     result[category.title] = data
-            categories = Category.objects.exclude(id__in=categories_liked).only('id', 'title')
-            for category in categories:
-                queryset = Course.published.filter(category=category).exclude(
-                    id__in=most_popular_ids
-                ).order_by('-rating')[:8]
-                data = serializers.CourseSerializer(queryset, many=True).data
-                result[category.title] = data
-            return Response(result, status.HTTP_200_OK)
+        categories = Category.objects.exclude(id__in=categories_liked).only('id', 'title')
+        for category in categories:
+            queryset = Course.published.filter(category=category).exclude(
+                id__in=most_popular_ids
+            ).order_by('-rating')[:8]
+            data = serializers.CourseSerializer(queryset, many=True).data
+            result[category.title] = data
+        return Response(result, status.HTTP_200_OK)
+    
 
 
 class CourseViewSet(ModelViewSet):
@@ -170,6 +171,11 @@ class CourseViewSet(ModelViewSet):
             return [IsAuthorOrStudent()]
         return []
 
+    @extend_schema(
+            description='Создание курса, "category" - название категории, "draft" - метка, хочет ли автор '
+                        'опубликовать курс или курс ещё подлежит редактированию, доступные варианты для '
+                        '"level": "high", "medium", "low"'
+    )
     def create(self, request, *args, **kwargs):
         data = request.data
         data['moderated'] = False
@@ -251,6 +257,18 @@ class UserCourseListView(ListAPIView):
 
     def get_queryset(self):
         return Course.published.filter(students__contains=self.request.user.id)
+    
+    @extend_schema(description='Для просмотра купленных и созданных курсов. "is_owner" - булево значение, '
+                                'показывающее, является ли данный курс созданным данным пользователем или '
+                                'этот курс был куплен пользователем. Поле "lessons_seen" возвращает '
+                                'строку в формате: "xx%" т.е: "40%", "50%", "90%", т.е служит для отображения '
+                                'прогресса по прохождению курса. Для курсов, которые были выложены тем же '
+                                'пользователем, который сейчас находится на этом ендпоните (т.е "is_owner": True) '
+                                'данное поле примет значение "N/A (или если пользователь не является студентом курса)", '
+                                'если у курса всего по какой-то причине 0 уроков, но при этом у курса есть студенты '
+                                'и студент сейчас просматривает данный ендпоинт, то для этого поля будет значение "0%"')
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
 
 class LessonCreateView(CreateAPIView):
@@ -285,6 +303,18 @@ class LessonViews(RetrieveUpdateDestroyAPIView):
             instance.save()
         serializer = self.get_serializer(instance)
         return Response(serializer.data)
+    
+    @extend_schema(
+            description=""" "reply_comments" содержит массив json-объектов, которые ссылаются на этот
+                        комментарий, т.е те комментарии, которые являются ответом на текущий комментарий.
+                        Содержит None в случае, если такие комментарии отсутствуют.
+                        "is_note" - булево значение, регулирующее, является ли комментарий комментарием, или же
+                        это личная заметка пользователя, например, какое-то определение, выписанное из самого урока,
+                        т.е не предназначенное для других пользователей.
+                        """
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
     
     
 class CourseCommentCreateView(CreateAPIView):
