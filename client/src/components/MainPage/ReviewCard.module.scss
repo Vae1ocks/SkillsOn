@@ -1,0 +1,58 @@
+.reviewCard {
+  background: white;
+  position: relative;
+  width: 21rem;
+  height: 18rem;
+  border-radius: 24px;
+  padding: 1.34rem;
+  overflow: hidden;
+
+  .generalInfo {
+    display: flex;
+
+    p {
+      margin-top: 0;
+      margin-bottom: 0;
+    }
+
+    .name {
+      font-weight: bold;
+      color: #283739;
+    }
+
+    .course {
+      font-size: 14px;
+      button {
+        font-size: 14px;
+        color: #2871ee;
+      }
+    }
+
+    img {
+      width: 48px;
+      height: 48px;
+      margin-right: 8px;
+    }
+  }
+
+  .rating {
+    margin-top: 16px;
+    margin-bottom: 8px;
+  }
+
+  .review {
+    margin-top: 0;
+    color: #283739;
+    font-size: 18px;
+  }
+
+  .showMore {
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
+    color: #2871ee;
+    display: flex;
+    align-items: center;
+    font-size: 18px;
+  }
+}

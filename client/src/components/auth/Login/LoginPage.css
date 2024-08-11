@@ -1,134 +1,141 @@
-body {
-    margin: 0;
-    font-family: Arial, sans-serif;
-    background-color: #fff;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    height: 100vh;
-    position: relative;
+/* body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #fff;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 100vh;
+  position: relative;
+} */
+
+.login {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background-color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  position: relative;
 }
 
 .back-link {
-    position: absolute;
-    top: 75px;
-    left: 140px;
-    cursor: pointer;
-    color: #007bff;
-    font-size: 16px;
-    text-decoration: none;
+  position: absolute;
+  top: 75px;
+  left: 140px;
+  cursor: pointer;
+  color: #007bff;
+  font-size: 16px;
+  text-decoration: none;
 }
 
-.login-container {
-    padding: 40px;
-    width: 360px;
-    text-align: center;
+.login-form {
+  position: absolute;
+  z-index: 3;
+  padding: 40px;
+  width: 360px;
+  text-align: center;
 }
 
 .login-form h1 {
-    margin-bottom: 20px;
+  margin-bottom: 20px;
 }
 
 .login-form form {
-    display: flex;
-    flex-direction: column;
+  display: flex;
+  flex-direction: column;
 }
 
-input {
-    padding: 10px;
-    margin: 10px 0;
-    border-radius: 32px;
-    border: 1px solid #CCCCCC;
-
+.login input {
+  padding: 10px;
+  margin: 10px 0;
+  border-radius: 32px;
+  border: 1px solid #cccccc;
 }
 
 .second-input {
-    margin-bottom: 36px;
+  margin-bottom: 36px;
 }
 
 .login-form button {
-    margin-top: 7px;
-    background-color: #007bff;
-    color: #fff;
-    border: none;
-    cursor: pointer;
-    border-radius: 32px;
-    width: 100px;
-    height: 44px;
-    font-size: 18px;
-    text-align: center;
-    justify-content: center;
-    flex: auto;
-    margin: auto;
-    padding: 12px 24px;
-    font-weight: 700;
-
+  margin-top: 7px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  border-radius: 32px;
+  width: 100px;
+  height: 44px;
+  font-size: 18px;
+  text-align: center;
+  justify-content: center;
+  flex: auto;
+  margin: auto;
+  padding: 12px 24px;
+  font-weight: 700;
 }
 
 .login-form button:hover {
-    background-color: #0056b3;
+  background-color: #0056b3;
 }
 
 .register-link,
 .forgot-password-link {
-    margin-top: 40px;
-    font-size: 14px;
+  margin-top: 40px;
+  font-size: 14px;
 }
 
 .register-link a,
 .forgot-password-link a {
-    color: #007bff;
-    text-decoration: none;
-
+  color: #007bff;
+  text-decoration: none;
 }
 
 .forgot-password-link {
-    margin-top: 164px;
+  margin-top: 164px;
 }
 
 .register-link a:hover,
 .forgot-password-link a:hover {
-    text-decoration: underline;
+  text-decoration: underline;
 }
-
 
 /* bg_dec_reg/entrance_spiral */
 .spinner {
-    width: 497.69px;
-    height: 559.16px;
-    top: 200px;
-    left: -15px;
-    gap: 0px;
-    border: 20px 0px 0px 0px;
-    opacity: 0px;
-    position: absolute;
+  width: 497.69px;
+  height: 559.16px;
+  top: 200px;
+  left: -15px;
+  gap: 0px;
+  border: 20px 0px 0px 0px;
+  opacity: 0px;
+  position: absolute;
 
-    background-image: url('../../../../data/reg_entrance/bg_dec_reg_entrance_spiral.svg');
-    background-repeat: no-repeat;
+  background-image: url("../../../../data/reg_entrance/bg_dec_reg_entrance_spiral.svg");
+  background-repeat: no-repeat;
 }
 
 .logo {
-    background-image: url('../../../../data/skillson_logo.svg');
-    width: 180px;
-    height: 56px;
-    left: 630px;
-    gap: 0px;
-    margin: auto;
-    margin-top: 64px;
-    position: static;
+  background-image: url("../../../../data/skillson_logo.svg");
+  width: 180px;
+  height: 56px;
+  left: 630px;
+  gap: 0px;
+  margin: auto;
+  margin-top: 64px;
+  position: static;
 }
 
 .arrow {
-    width: 432px;
-    height: 1038px;
-    top: 36px;
-    left: 969px;
-    gap: 0px;
-    border: 20px 0px 0px 0px;
-    opacity: 0px;
-    background-image: url('../../../../data/reg_entrance/bg_dec_reg_entrance_arrow.svg');
-    position: absolute;
-    background-repeat: no-repeat;
-
-
+  width: 432px;
+  height: 1038px;
+  top: 36px;
+  left: 969px;
+  gap: 0px;
+  border: 20px 0px 0px 0px;
+  opacity: 0px;
+  background-image: url("../../../../data/reg_entrance/bg_dec_reg_entrance_arrow.svg");
+  position: absolute;
+  background-repeat: no-repeat;
 }
