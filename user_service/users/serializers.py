@@ -81,11 +81,16 @@ class ChatSerializer(serializers.ModelSerializer):
         child=serializers.IntegerField(),
         write_only=True
     )
-    user_detail = UserListSerializer(many=True, read_only=True, source='users')
+    user_detail = serializers.SerializerMethodField()
 
     class Meta:
         model = Chat
         fields = ['id', 'users', 'user_detail']
+
+    def get_user_detail(self, obj):
+        user_id = self.context['request'].user.id
+        user = obj.users.exclude(id=user_id).first()
+        return UserListSerializer(user).data
 
     def create(self, validated_data):
         users_ids = validated_data.pop('users')

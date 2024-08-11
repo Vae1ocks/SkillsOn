@@ -32,7 +32,7 @@ class YookassaPaymentView(APIView):
                     },
                     'confirmation': {
                         'type': 'redirect',
-                        'return_url': reverse_lazy('courses:course-list')
+                        'return_url': request.build_absolute_uri(reverse_lazy('courses:course-list'))
                     },
                     'capture': True,
                     'description': order.__str__(),
@@ -44,6 +44,7 @@ class YookassaPaymentView(APIView):
                 {'confirmation_url': payment.confirmation['confirmation_url']},
                 status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)      
+
 
 class StripePayment(APIView):
     permission_classes = [IsAuthenticated]

@@ -74,6 +74,7 @@ class YooKassaPaymentWebhook(APIView):
                         'Т.е этот ендпоинт для взаимодействия бэка с юкассой'
     )
     def post(self, request, *args, **kwargs):
+        # ip, с которых YooKassa шлёт уведомления
         allowed_ips = [
             '185.71.76.0/27',
             '185.71.77.0/27',

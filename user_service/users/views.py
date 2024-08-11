@@ -1,7 +1,7 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.generics import ListCreateAPIView, RetrieveDestroyAPIView,\
+from rest_framework.generics import ListCreateAPIView, RetrieveDestroyAPIView, \
     UpdateAPIView, ListAPIView, RetrieveAPIView
 from rest_framework import status
 from .permissions import IsRequestUserProfile
@@ -11,7 +11,9 @@ from django.contrib.auth import get_user_model
 from django.db.models import Q
 from celery import current_app
 from .tasks import send_confirmation_code
-from drf_spectacular.utils import extend_schema, inline_serializer
+
+from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from drf_spectacular.types import OpenApiTypes
 import random
 
 
@@ -23,7 +25,7 @@ class UserPersonalInfoUpdateView(APIView):
         user = get_user_model().objects.get(id=request.user.id)
         serializer = serializers.UserPersonalInfoSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
-    
+
     def post(self, request, *args, **kwargs):
         serializer = serializers.UserPersonalInfoSerializer(data=request.data)
         if serializer.is_valid():
@@ -56,7 +58,7 @@ class ConfirmationOldEmailView(APIView):
         body = f'Ваш код для подтверждения текущей почты: {confirmation_code}'
         send_confirmation_code.delay(body=body, email=user.email)
         return Response({'detail': 'Код был выслан'}, status=status.HTTP_200_OK)
-    
+
     @extend_schema(request=serializers.ConfirmationCodeSerializer)
     def post(self, request, *args, **kwargs):
         serializer = serializers.ConfirmationCodeSerializer(data=request.data)
@@ -96,7 +98,7 @@ class EmailUpdateSetNewEmailView(APIView):
                                 status=status.HTTP_409_CONFLICT)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(status=status.HTTP_403_FORBIDDEN)
-    
+
 
 class EmailUpdateFinish(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
@@ -115,9 +117,9 @@ class EmailUpdateFinish(APIView):
                     user = get_user_model().objects.get(id=request.user.id)
                     current_app.send_task(
                         'auth_service.update_user_email',
-                         kwargs={
-                         'old_user_email': user.email,
-                         'new_user_email': email
+                        kwargs={
+                            'old_user_email': user.email,
+                            'new_user_email': email
                         }, queue='auth_service_queue'
                     )
                     user.email = email
@@ -128,7 +130,7 @@ class EmailUpdateFinish(APIView):
             return Response({'detail': 'Требуется ввод кода'},
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
 
 class PasswordChangeView(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
@@ -160,7 +162,7 @@ class ChatListView(ListCreateAPIView):
     def get_queryset(self):
         user = get_user_model().objects.get(id=self.request.user.id)
         return Chat.objects.filter(users__id=user.id)
-    
+
 
 class ChatRetrieveView(RetrieveDestroyAPIView):
     permission_classes = [IsAuthenticated]
@@ -169,11 +171,11 @@ class ChatRetrieveView(RetrieveDestroyAPIView):
     def get_queryset(self):
         user = get_user_model().objects.get(id=self.request.user.id)
         return Chat.objects.filter(users__id=user.id)
-    
+
 
 class UserListView(ListAPIView):
     serializer_class = serializers.UserListSerializer
-    
+
     def get_queryset(self):
         name = self.request.query_params.get('name')
         if name:
@@ -182,7 +184,7 @@ class UserListView(ListAPIView):
                 first_value, second_value = name
                 queryset = get_user_model().objects.filter(
                     Q(first_name__icontains=first_value,
-                    last_name__icontains=second_value) |
+                      last_name__icontains=second_value) |
                     Q(first_name__icontains=second_value,
                       last_name__icontains=first_value)
                 )
@@ -195,16 +197,33 @@ class UserListView(ListAPIView):
                 )
             return queryset.exclude(id=self.request.user.id)
         return get_user_model().objects.none()
-    
+
+    @extend_schema(
+        description='Для поиска пользователей. Обязательно наличие get-параметра "name", '
+                    'в котором может находиться как 1 значение (не важно, это имя или '
+                    'фамилия, поиск пройдёт по пользователям и с именем, совпадающим '
+                    'с name, и с фамилией, совпдающей с name), так и 2 значения, '
+                    'предполагается, что этими 2 значениями будут имя и фамилия, '
+                    'не важно в какой последовательности, будто бы Имя, Фамилия '
+                    'или Фамилия, Имя. Если значений больше 2, то пустое множество. '
+                    'Если name не передан, то пустое множество.',
+        parameters=[
+            OpenApiParameter(name='name', description='Имя или фамилия пользователя',
+                             required=False, type=OpenApiTypes.STR)
+        ]
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
 
 class UserDetailView(RetrieveAPIView):
     queryset = get_user_model().objects.all()
-    
+
     def get_serializer_class(self):
         if self.request.user.id == self.get_object().id:
             return serializers.UserSerializer
         return serializers.OtherUserSerializer
-    
+
 
 class UserPreferencesView(APIView):
     @extend_schema(description='Для внутреннего бэкенд взаимодействия')
@@ -213,7 +232,7 @@ class UserPreferencesView(APIView):
         user = get_user_model().objects.get(id=user_id)
         categories_liked = user.categories_liked
         return Response(categories_liked, status=status.HTTP_200_OK)
-    
+
 
 class UserPersonalInfoView(APIView):
     @extend_schema(description='Для внутреннего бэкенд взаимодействия')

@@ -26,14 +26,14 @@ class ChatConsumer(AsyncJsonWebsocketConsumer):
     async def receive_json(self, content):
         message = content['message']
         user = self.scope['user']
-        
+
         if user.is_anonymous:
             return
 
         await database_sync_to_async(Message.objects.create)(
             chat=self.chat,
             text=message,
-            user=user
+            author=user
         )
 
         await self.channel_layer.group_send(

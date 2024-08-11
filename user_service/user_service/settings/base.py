@@ -25,6 +25,7 @@ JWT_SECRET_KEY = 'django-insecure-kn@#59&6dy!d8*kizp_r4tb%e+g2ls%fcu6kb=4g!g+d^f
 
 
 INSTALLED_APPS = [
+    'daphne',
     'django.contrib.admin',
     'django.contrib.auth',
     'django.contrib.contenttypes',
@@ -37,6 +38,7 @@ INSTALLED_APPS += [
     'rest_framework',
     'rest_framework_simplejwt',
     "corsheaders",
+    'channels',
 ]
 
 INSTALLED_APPS += [
@@ -132,7 +134,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = 'user_service.wsgi.application'
+ASGI_APPLICATION = 'user_service.asgi.application'
 
 # Password validation
 # https://docs.djangoproject.com/en/4.2/ref/settings/#auth-password-validators
