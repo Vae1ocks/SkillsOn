@@ -21,11 +21,15 @@ class UserPersonalInfoUpdateView(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
     serializer_class = serializers.UserPersonalInfoSerializer
 
+    @extend_schema(description='Детальная информация о личном профиле')
     def get(self, request, *args, **kwargs):
         user = get_user_model().objects.get(id=request.user.id)
         serializer = serializers.UserPersonalInfoSerializer(user)
         return Response(serializer.data, status=status.HTTP_200_OK)
 
+    @extend_schema(
+        description='Для смены персональных данных'
+    )
     def post(self, request, *args, **kwargs):
         serializer = serializers.UserPersonalInfoSerializer(data=request.data)
         if serializer.is_valid():
@@ -51,6 +55,10 @@ class UserPersonalInfoUpdateView(APIView):
 class ConfirmationOldEmailView(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
 
+    @extend_schema(
+        description='Первый этап смены эл.почты, get-запрос служит для отправки '
+                    'кода на электронную почту. Данных не требует.'
+    )
     def get(self, request, *args, **kwargs):
         confirmation_code = random.randint(100000, 999999)
         request.session['confirmation_code'] = confirmation_code
@@ -59,7 +67,11 @@ class ConfirmationOldEmailView(APIView):
         send_confirmation_code.delay(body=body, email=user.email)
         return Response({'detail': 'Код был выслан'}, status=status.HTTP_200_OK)
 
-    @extend_schema(request=serializers.ConfirmationCodeSerializer)
+    @extend_schema(
+        description='Второй этап смены эл.почты: ввод кода, отправленного на эл.почту '
+                    'при get-запросе на этот ендпоинт.',
+        request=serializers.ConfirmationCodeSerializer
+    )
     def post(self, request, *args, **kwargs):
         serializer = serializers.ConfirmationCodeSerializer(data=request.data)
         if serializer.is_valid():
@@ -81,6 +93,9 @@ class EmailUpdateSetNewEmailView(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
     serializer_class = serializers.EmailSerializer
 
+    @extend_schema(
+        description='Третий этап смены почты: ввод новой электронной почты.'
+    )
     def post(self, request, *args, **kwargs):
         if request.session.get('email_confirmated'):
             serializer = serializers.EmailSerializer(data=request.data)
@@ -104,6 +119,10 @@ class EmailUpdateFinish(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
     serializer_class = serializers.EmailWithConfirmationCodeSerializer
 
+    @extend_schema(
+        description='Четвёртый, последний этап смены почты: ввод кода подтверждения, '
+                    'отправленного на новую эл.почту из третьего этапа смены почты.'
+    )
     def post(self, request, *args, **kwargs):
         serializer = serializers.EmailWithConfirmationCodeSerializer(
             data=request.data
@@ -136,6 +155,10 @@ class PasswordChangeView(APIView):
     permission_classes = [IsAuthenticated, IsRequestUserProfile]
     serializer_class = serializers.ChangePasswordSerializer
 
+    @extend_schema(
+        description='Смена пароля. Требуется старый и новый пароль. Доп.поле '
+                    '"подтвердите новый пароль" только во фронте.'
+    )
     def post(self, request, *args, **kwargs):
         serializer = serializers.ChangePasswordSerializer(
             data=request.data,
@@ -171,6 +194,13 @@ class ChatRetrieveView(RetrieveDestroyAPIView):
     def get_queryset(self):
         user = get_user_model().objects.get(id=self.request.user.id)
         return Chat.objects.filter(users__id=user.id)
+
+    @extend_schema(
+        description='Информация о конкретном чате, включающая сообщения данного чата.'
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
+
 
 
 class UserListView(ListAPIView):

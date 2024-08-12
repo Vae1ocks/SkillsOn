@@ -20,6 +20,8 @@ class YooKassaPayoutView(APIView):
     permission_classes = [IsAuthenticated]
     
     @extend_schema(
+            description='Для осуществления выплат. Требуется токен, полученный '
+                        'от формы ЮКассы ввода данных карты.',
             request=inline_serializer(
                 name='YooKassaPayoutSerializer',
                 fields={

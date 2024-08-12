@@ -1,13 +1,15 @@
 import os
 from .base import *
 
-DEBUG = False
+# DEBUG = False
+DEBUG = True
 
-ADMINS = [
-    ('Vaelocks', 'email@email.com'),
-]
+# ADMINS = [
+#     ('Vaelocks', 'email@email.com'),
+# ]
 
-ALLOWED_HOSTS = ['auth-service','31.128.42.26']
+# ALLOWED_HOSTS = ['auth-service','31.128.42.26']
+ALLOWED_HOSTS = ['*']
 
 DATABASES = {
     'default': {

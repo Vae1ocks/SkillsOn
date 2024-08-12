@@ -10,7 +10,6 @@ from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
 from .tasks import send_confiramtion_code
-from rest_framework_simplejwt.views import TokenObtainPairView
 from celery import current_app
 from drf_spectacular.utils import extend_schema, inline_serializer
 import datetime
@@ -21,6 +20,9 @@ import random
 class RegistrationView(APIView):
     serializer_class = UserSerializer # Только для drf_spectacular
 
+    @extend_schema(
+        description='Первый этап регистрации: ввод персональных данных.'
+    )
     def post(self, request, *args, **kwargs):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
@@ -38,6 +40,10 @@ class RegistrationView(APIView):
 class RegistrationConfirmationView(APIView):
     serializer_class = ConfirmationCodeSerializer # Только для drf_spectacular
 
+    @extend_schema(
+        description='Второй этап регистрации: ввод кода подтверждения, отправленного '
+                    'на указанную электронную почту.'
+    )
     def post(self, request, *args, **kwargs):
         serializer = ConfirmationCodeSerializer(data=request.data)
         if serializer.is_valid():
@@ -53,7 +59,9 @@ class RegistrationCategoryChoiceView(APIView):
     serializer_class = CategorySerializer # Только для drf_spectacular
 
     @extend_schema(
-        description='Возвращает список json-объектов, что показаны в примере. [{...}, {...}, {...}]',
+        description='Третий этап регистрации: выбор предпочтений. '
+                    'Возвращает список json-объектов, что показаны в примере. '
+                    '[{...}, {...}, {...}]',
     )
     def get(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
@@ -69,7 +77,9 @@ class RegistrationCategoryChoiceView(APIView):
                         status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     @extend_schema(
-        description='Возвращает список json-объектов, что показаны в примере. [{...}, {...}, {...}]',
+        description='Третий этапе регистрации: выбор предпочитаемых категорий. '
+                    '(Категории получить можно через get-запрос на этот ендпоинт).',
+        request=CategorySerializer(many=True)
     )
     def post(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
@@ -95,33 +105,12 @@ class RegistrationCategoryChoiceView(APIView):
                 return Response(user_serializer.data, status=status.HTTP_201_CREATED)
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
 
-# class LoginView(APIView):
-#     def post(self, request, *args, **kwargs):
-#         email = request.data.get('email')
-#         password = request.data.get('password')
-#         if not email or not password:
-#             return Response({'detail': 'Email and password are required'}, status=status.HTTP_400_BAD_REQUEST)
-#         user = authenticate(request,
-#                             email=email,
-#                             password=password)
-#         if user is not None:
-#             if user.is_active:
-#                 data = {
-#                     'id': user.id,
-#                     'exp': timezone.now() + datetime.timedelta('days=10'),
-#                     'iat': timezone.now()
-#                 }
-#                 token = jwt.encode(data, settings.SECRET_KEY, algorithm='HS256')
-#                 return Response({'token': token}, status=status.HTTP_200_OK)
-#             return Response({'detail': 'Account is banned'}, status=status.HTTP_403_FORBIDDEN)
-#         return Response({'detail': 'Invalid data'}, status=status.HTTP_404_NOT_FOUND)
-    
 
 class PasswordResetView(APIView):
     serializer_class = EmailSerializer # Только для drf_spectacular
 
+    @extend_schema(description='Первый этап сброса пароля: ввод почты')
     def post(self, request, *args, **kwargs):
         serializer = EmailSerializer(data=request.data)
         if serializer.is_valid():
@@ -146,6 +135,8 @@ class PasswordResetView(APIView):
 class PasswordResetConfirmationView(APIView):
     serializer_class = ConfirmationCodeSerializer # Только для drf_spectacular
 
+    @extend_schema(description='Второй этап сброса пароля: '
+                               'ввод кода, отправленного на почту')
     def post(self, request, *args, **kwargs):
         serializer = ConfirmationCodeSerializer(data=request.data)
         if serializer.is_valid():
@@ -160,6 +151,9 @@ class PasswordResetConfirmationView(APIView):
 class PasswordResetNewPasswordView(APIView):
     serializer_class = PasswordSerializer # Только для drf_spectacular
 
+    @extend_schema(description='Третий этап сброса пароля: ввод нового пароля. '
+                               '(Повторный ввод нового пароля для подтверждения '
+                               'по задумке запрашивается лишь во фронтенде).')
     def post(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
             return Response({'detail': 'Email not confirmed'}, status=status.HTTP_403_FORBIDDEN)
@@ -185,20 +179,3 @@ class PasswordResetNewPasswordView(APIView):
             return Response({'detail': 'Неверный email, пользователь не найден'},
                             status=status.HTTP_400_BAD_REQUEST)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
-from rest_framework_simplejwt.authentication import JWTTokenUserAuthentication
-from rest_framework.permissions import IsAuthenticated
-from rest_framework.views import APIView
-from rest_framework.response import Response
-
-
-class ExampleView(APIView):
-    authentication_classes = [JWTTokenUserAuthentication]
-    permission_classes = [IsAuthenticated]
-
-    def get(self, request):
-        return Response({"message": f"Hello, {request.user.email}! \
-                         Your name is {request.user.first_name} + {request.user.last_name}"})
-
-class EmailTokenObtainPairView(TokenObtainPairView):
-    serializer_class = EmailTokenObtainPairSerializer

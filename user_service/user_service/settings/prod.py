@@ -1,13 +1,14 @@
 import os
 from .base import *
 
-DEBUG = False
+DEBUG = True
 
-ADMINS = [
-    ('Vaelocks', 'email@email.com'),
-]
+# ADMINS = [
+#     ('Vaelocks', 'email@email.com'),
+# ]
 
-ALLOWED_HOSTS = ['user-service', '31.128.42.26']
+# ALLOWED_HOSTS = ['user-service', '31.128.42.26']
+ALLOWED_HOSTS = ['*']
 
 REST_FRAMEWORK['DEFAULT_AUTHENTICATION_CLASSES'] = (
     'rest_framework_simplejwt.authentication.JWTAuthentication',

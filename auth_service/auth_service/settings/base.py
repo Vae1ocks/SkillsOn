@@ -4,18 +4,12 @@ from pathlib import Path
 BASE_DIR = Path(__file__).resolve().parent.parent.parent
 
 
-# Quick-start development settings - unsuitable for production
-# See https://docs.djangoproject.com/en/4.2/howto/deployment/checklist/
-
-# SECURITY WARNING: keep the secret key used in production secret!
 SECRET_KEY = 'django-insecure-kn@#59&6dy!d8*kizp_r4tb%e+g2ls%fcu6kb=4g!g+d^fi6k1'
 JWT_SECRET_KEY = 'django-insecure-kn@#59&6dy!d8*kizp_r4tb%e+g2ls%fcu6kb=4g!g+d^fi6k1'
-# SECURITY WARNING: don't run with debug turned on in production!
 
 ALLOWED_HOSTS = ['auth-service', 'localhost', '127.0.0.1', '31.128.42.26']
 
 
-# Application definition
 
 INSTALLED_APPS = [
     'django.contrib.admin',

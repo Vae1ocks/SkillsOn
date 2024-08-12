@@ -4,7 +4,7 @@ from rest_framework.viewsets import ModelViewSet
 from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated, SAFE_METHODS
+from rest_framework.permissions import IsAuthenticated, SAFE_METHODS, AllowAny
 from rest_framework.exceptions import NotFound, ValidationError, ParseError
 from django.db.models import Func, IntegerField
 from django.db.models.functions import Lower
@@ -22,7 +22,6 @@ class CategoryListView(ListAPIView):
 
 
 class CourseOverviewList(GenericAPIView):
-    serializer_class = serializers.CourseSerializer # не он, просто для drf_spectacular
     @extend_schema(
             description='Для просмотра курсов в случае отсутствия параметров фильтрации/сортировки. '
                         'В данном случае количество курсов для каждой категории будет ограничено 8. '
@@ -168,7 +167,7 @@ class CourseViewSet(ModelViewSet):
         if self.action in ['update', 'partial_update']:
             return [IsAuthor()]
         if self.action == 'get':
-            return [IsAuthorOrStudent()]
+            return [AllowAny()]
         return []
 
     @extend_schema(
@@ -291,7 +290,7 @@ class LessonViews(RetrieveUpdateDestroyAPIView):
         if self.request.method in SAFE_METHODS:
             return [IsAuthorOrStudent()]
         return [IsAuthor()]
-    
+
     def perform_update(self, serializer):
         serializer.save(moderated=False)
 
@@ -343,7 +342,7 @@ class CourseCommentCreateView(CreateAPIView):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return context
-    
+
 
 class CourseCommentUpdateView(UpdateAPIView):
     serializer_class = serializers.CourseCommentSerializer
@@ -380,12 +379,66 @@ class LessonCommentCreateView(CreateAPIView):
             return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
         return context
+
+    @extend_schema(
+        description='По запрашиваемым данным: "id", "author_name", "author_image", '
+                    'не требуются: "id" будет взят из объекта запроса, а '
+                    '"author_..." будут взяты из другого микросервиса в бэке; '
+                    'значение "quote_text" используется, если пользователь решил '
+                    'цитировать фрагмент текста урока курса, т.е цитировать автора '
+                    'урока; "is_note" регулирует, является ли данный комментарий '
+                    'комментарием, опубликованным для обозрения другими пользователями '
+                    'или этот комментарий вовсе не комментарий, а личная заметка '
+                    'пользователя (Так как комментарий и заметка это объекты 1 типа, '
+                    'регулируемые этим булевым значением); "reply_to" служит для ответа '
+                    'на комментарии других пользователей, должен содержать id комментария, '
+                    'на который делается ответ; если комментарий не является '
+                    'ответом на чужой какой-то комментарий, то Null.'
+    )
+    def post(self, request, *args, **kwargs):
+        return super().post(request, *args, **kwargs)
     
 
 class LessonCommentUpdateView(UpdateAPIView):
     serializer_class = serializers.LessonCommentSerializer
     permission_classes = [IsAuthor]
     queryset = LessonComment.objects.all()
+
+    @extend_schema(
+        description='По запрашиваемым данным: "id", "author_name", "author_image", '
+                    'не требуются: "id" будет взят из объекта запроса, а '
+                    '"author_..." будут взяты из другого микросервиса в бэке; '
+                    'значение "quote_text" используется, если пользователь решил '
+                    'цитировать фрагмент текста урока курса, т.е цитировать автора '
+                    'урока; "is_note" регулирует, является ли данный комментарий '
+                    'комментарием, опубликованным для обозрения другими пользователями '
+                    'или этот комментарий вовсе не комментарий, а личная заметка '
+                    'пользователя (Так как комментарий и заметка это объекты 1 типа, '
+                    'регулируемые этим булевым значением); "reply_to" служит для ответа '
+                    'на комментарии других пользователей, должен содержать id комментария, '
+                    'на который делается ответ; если комментарий не является '
+                    'ответом на чужой какой-то комментарий, то Null.'
+    )
+    def patch(self, request, *args, **kwargs):
+        return super().patch(request, *args, **kwargs)
+
+    @extend_schema(
+        description='По запрашиваемым данным: "id", "author_name", "author_image", '
+                    'не требуются: "id" будет взят из объекта запроса, а '
+                    '"author_..." будут взяты из другого микросервиса в бэке; '
+                    'значение "quote_text" используется, если пользователь решил '
+                    'цитировать фрагмент текста урока курса, т.е цитировать автора '
+                    'урока; "is_note" регулирует, является ли данный комментарий '
+                    'комментарием, опубликованным для обозрения другими пользователями '
+                    'или этот комментарий вовсе не комментарий, а личная заметка '
+                    'пользователя (Так как комментарий и заметка это объекты 1 типа, '
+                    'регулируемые этим булевым значением); "reply_to" служит для ответа '
+                    'на комментарии других пользователей, должен содержать id комментария, '
+                    'на который делается ответ; если комментарий не является '
+                    'ответом на чужой какой-то комментарий, то Null.'
+    )
+    def put(self, request, *args, **kwargs):
+        return super().put(request, *args, **kwargs)
 
 
 class LessonCommentDestroyView(DestroyAPIView):
