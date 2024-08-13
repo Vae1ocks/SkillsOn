@@ -21,9 +21,6 @@ media
 .idea/**/dictionaries
 .idea/**/shelf
 
-# Dima
-requirements.txt
-zametki.txt
 
 # AWS User-specific
 .idea/**/aws.xml
