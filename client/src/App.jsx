@@ -1,10 +1,10 @@
-import LoginPage from './components/auth/Login/index'
-import RegisterPage from './components/auth/Register/index'
+import LoginPage from './Pages/auth/Login/index'
+import RegisterPage from './Pages/auth/Register/index'
 import { Route, Routes } from 'react-router';
 import PrivateRoute from './utilits/router/PrivateRoute';
-import MainPage from './components/MainPage';
+import MainPage from './Pages/MainPage';
 import s from './App.module.scss'
-import CoursesPage from './components/Courses';
+import CoursesPage from './Pages/Courses';
 function App() {
 
 

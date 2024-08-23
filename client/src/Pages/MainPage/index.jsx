@@ -1,14 +1,14 @@
 import styles from "./MainPageLayout.module.scss";
-import Header from "./Header";
-import Banner from "./Banner";
-import Carousel from "./Carousel";
-import carouselStyles from "./Carousel.module.scss";
-import CourseTypeCard from "./CourseTypeCard";
-import CourseCard from "./CourseCard";
-import Info from "./Info";
-import ReviewCard from "./ReviewCard";
+import Header from "../../components/Header";
+import Banner from "../../components/Banner";
+import Carousel from "../../components/Carousel";
+import carouselStyles from "../../components/Carousel/Carousel.module.scss";
+import CourseTypeCard from "../../components/CourseTypeCard";
+import CourseCard from "../../components/CourseCard";
+import Info from "../../components/Info";
+import ReviewCard from "../../components/ReviewCard";
 import bgReviewsCarousel from "../../assets/bg_dec_reviews.svg";
-import Consultation from "./Consultation";
+import Consultation from "../../components/Consultation";
 import { useEffect, useState } from "react";
 
 function MainPage() {
