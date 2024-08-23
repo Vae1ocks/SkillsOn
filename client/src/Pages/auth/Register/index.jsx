@@ -5,6 +5,7 @@ import './Register.css';
 const Registration = () => {
     return (
         <>
+        
           <div className="logo"><Link to="/main"/></div>
   <div className="back-link">
   <Link to="/login">Назад</Link></div>
