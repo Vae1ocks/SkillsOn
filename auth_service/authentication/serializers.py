@@ -1,18 +1,21 @@
 from rest_framework import serializers
-from django.contrib.auth import get_user_model
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+
+from django.contrib.auth import get_user_model
+
+User = get_user_model()
 
 
 class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
-        model = get_user_model()
+        model = User
         fields = ['email', 'first_name', 'last_name', 'password']
         extra_kwargs = {'password': {'write_only' : True}}
     
     def create(self, validated_data):
         password = validated_data.pop('password')
-        user = get_user_model().objects.create_user(**validated_data, password=password)
+        user = User.objects.create_user(**validated_data, password=password)
         return user
 
 
@@ -28,9 +31,10 @@ class CategorySerializer(serializers.Serializer):
 class EmailSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
+
 class PasswordSerializer(serializers.ModelSerializer):
     class Meta:
-        model = get_user_model()
+        model = User
         fields = ['password']
 
 

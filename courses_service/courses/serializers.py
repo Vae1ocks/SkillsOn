@@ -1,9 +1,12 @@
 from rest_framework import serializers
+
 from django.utils.text import slugify
-from unidecode import unidecode
-from drf_spectacular.utils import extend_schema_field
 from django.apps import apps
+
 from . import models
+
+from drf_spectacular.utils import extend_schema_field
+from unidecode import unidecode
 
 
 class CategorySerializer(serializers.ModelSerializer):

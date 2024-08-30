@@ -1,19 +1,27 @@
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
-from rest_framework.generics import ListCreateAPIView, RetrieveDestroyAPIView, \
-    UpdateAPIView, ListAPIView, RetrieveAPIView
+from rest_framework.generics import (ListCreateAPIView,
+                                     RetrieveDestroyAPIView,
+                                     UpdateAPIView, ListAPIView,
+                                     RetrieveAPIView)
 from rest_framework import status
+
+from django.contrib.auth import get_user_model
+from django.db.models import Q
+
 from .permissions import IsRequestUserProfile
 from .models import Chat
 from . import serializers
-from django.contrib.auth import get_user_model
-from django.db.models import Q
+
 from celery import current_app
 from .tasks import send_confirmation_code
 
-from drf_spectacular.utils import extend_schema, inline_serializer, OpenApiParameter
+from drf_spectacular.utils import (extend_schema,
+                                   inline_serializer,
+                                   OpenApiParameter)
 from drf_spectacular.types import OpenApiTypes
+
 import random
 
 

@@ -1,15 +1,18 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework import status
+
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
 from django.conf import settings
+
 from celery import current_app
-import stripe.error
+
 from payment.models import Order
 from courses.models import Course
 from drf_spectacular.utils import extend_schema
 from decimal import Decimal
+
 import stripe
 
 

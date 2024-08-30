@@ -1,9 +1,12 @@
-from urllib.parse import parse_qs
-from django.contrib.auth.models import AnonymousUser
 from rest_framework_simplejwt.tokens import AccessToken
 from rest_framework_simplejwt.exceptions import InvalidToken, TokenError
+
+from django.contrib.auth.models import AnonymousUser
 from django.contrib.auth import get_user_model
+
 from channels.db import database_sync_to_async
+
+# from urllib.parse import parse_qs
 
 
 @database_sync_to_async

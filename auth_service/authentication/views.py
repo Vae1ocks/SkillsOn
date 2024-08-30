@@ -2,17 +2,21 @@ from rest_framework.views import APIView
 from rest_framework import generics
 from rest_framework import status
 from rest_framework.response import Response
-from .serializers import *
+
 from django.contrib.auth import get_user_model
 from django.contrib.auth import authenticate, login
 from django.core.mail import send_mail
 from django.conf import settings
 from django.urls import reverse
 from django.utils import timezone
+
+from .serializers import *
+
 from .tasks import send_confiramtion_code
 from celery import current_app
+
 from drf_spectacular.utils import extend_schema, inline_serializer
-import datetime
+
 import requests
 import random
 
@@ -38,7 +42,7 @@ class RegistrationView(APIView):
         
 
 class RegistrationConfirmationView(APIView):
-    serializer_class = ConfirmationCodeSerializer # Только для drf_spectacular
+    serializer_class = ConfirmationCodeSerializer  # Только для drf_spectacular
 
     @extend_schema(
         description='Второй этап регистрации: ввод кода подтверждения, отправленного '

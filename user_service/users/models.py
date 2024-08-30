@@ -1,7 +1,10 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (AbstractBaseUser,
+                                        BaseUserManager,
+                                        PermissionsMixin)
 from decimal import Decimal
+
 
 class UserManager(BaseUserManager):
     def _create_user(self, email, password,

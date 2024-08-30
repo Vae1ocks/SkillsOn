@@ -1,17 +1,23 @@
-from rest_framework.generics import ListAPIView, \
-    CreateAPIView, UpdateAPIView, RetrieveUpdateDestroyAPIView, DestroyAPIView, GenericAPIView
+from rest_framework.generics import (ListAPIView, CreateAPIView,
+                                     UpdateAPIView,
+                                     RetrieveUpdateDestroyAPIView,
+                                     DestroyAPIView, GenericAPIView)
 from rest_framework.viewsets import ModelViewSet
-from rest_framework.views import APIView
 from rest_framework import status
 from rest_framework.response import Response
+
 from rest_framework.permissions import IsAuthenticated, SAFE_METHODS, AllowAny
 from rest_framework.exceptions import NotFound, ValidationError, ParseError
+
 from django.db.models import Func, IntegerField
 from django.db.models.functions import Lower
+
 from . import serializers
 from .models import Course, Category, Lesson, CourseComment, LessonComment
 from .permissions import IsAuthor, IsStudent, IsAuthorOrStudent
+
 from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes, OpenApiResponse, inline_serializer
+
 import requests
 import json
 

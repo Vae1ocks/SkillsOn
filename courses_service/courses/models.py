@@ -1,13 +1,15 @@
 from django.db import models
 from django.db.models import Func, F
 from django.db.models import Count
-from django.utils import timezone
-from django.urls import reverse
 from django.contrib.contenttypes.models import ContentType
 from django.contrib.contenttypes.fields import GenericForeignKey
+
+from django.utils import timezone
 from django.core.validators import MinValueValidator, MaxValueValidator
-from .fields import OrderField
 from django.utils.text import slugify
+
+from .fields import OrderField
+
 from unidecode import unidecode
 
 

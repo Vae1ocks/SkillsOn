@@ -4,18 +4,23 @@ from rest_framework.response import Response
 from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
 from rest_framework import status
-from .serializers import OrderSerializer
+
 from django.contrib.auth import get_user_model
-from yookassa import Configuration, Payment, Payout
 from django.conf import settings
 from django.urls import reverse, reverse_lazy
-from drf_spectacular.utils import extend_schema
+
 from courses.models import Course
+from .serializers import OrderSerializer
+
+from drf_spectacular.utils import extend_schema
+
+from yookassa import Configuration, Payment, Payout
 # import stripe
 import uuid
 
 Configuration.account_id = settings.YOOKASSA_ACCOUNT_ID
 Configuration.secret_key = settings.YOOKASSA_SECRET_KEY
+
 
 class YookassaPaymentView(APIView):
     permission_classes = [IsAuthenticated]
