@@ -13,12 +13,14 @@ urlpatterns = [
          name='registration_email_confirmation'),
      path('registration/interests/', views.RegistrationCategoryChoiceView.as_view(),
           name='registration_category_choice'),
+
      path('password-reset/', views.PasswordResetView.as_view(), name='password_reset'),
      path('password-reset/email-confirmation/', views.PasswordResetConfirmationView.as_view(),
           name='password_reset_confirmation'),
      path('password-reset/new-password/', views.PasswordResetNewPasswordView.as_view(),
           name='password_reset_new_password'),
+
      # path('login/', views.LoginView.as_view(), name='login'),
-     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
-     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+     path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
+     path('token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]

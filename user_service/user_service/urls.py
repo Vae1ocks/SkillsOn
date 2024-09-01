@@ -12,6 +12,6 @@ urlpatterns = [
     path('users/', include('users.urls', namespace='users')),
     path('users/payout/', include('payout.urls', namespace='payout')),
 
-    path('users/api/login', TokenObtainPairView.as_view()),
+    path('users/login', TokenObtainPairView.as_view()),
     path('users/admin/', admin.site.urls),
 ]
