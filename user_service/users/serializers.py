@@ -6,12 +6,14 @@ from django.contrib.auth.password_validation import validate_password
 from .models import Chat, Message
 from payout.serializers import UserPayoutSerializer
 
+User = get_user_model()
+
 
 class UserSerializer(serializers.ModelSerializer):
     payouts = UserPayoutSerializer(many=True, read_only=True)
 
     class Meta:
-        model = get_user_model()
+        model = User
         fields = ['id', 'first_name', 'last_name',
                   'profile_picture', 'about_self', 'categories_liked',
                   'payouts', 'password', 'balance']
@@ -19,7 +21,7 @@ class UserSerializer(serializers.ModelSerializer):
         
     def create(self, validated_data):
         password = validated_data.pop('password')
-        user = get_user_model().objects.create_user(**validated_data, password=password)
+        user = User.objects.create_user(**validated_data, password=password)
         return user
     
 
@@ -28,7 +30,7 @@ class UserPersonalInfoSerializer(serializers.ModelSerializer):
     last_name = serializers.CharField(max_length=100, required=False)
 
     class Meta:
-        model = get_user_model()
+        model = User
         fields = ['profile_picture', 'first_name', 'last_name',
                   'about_self', 'categories_liked']
         
@@ -52,7 +54,7 @@ class ChangePasswordSerializer(serializers.Serializer):
     
     def validate_old_password(self, value):
         user_id = self.context['request'].user.id
-        user = get_user_model().objects.get(id=user_id)
+        user = User.objects.get(id=user_id)
         if not user.check_password(value):
             raise serializers.ValidationError('Введённый текущий пароль неверный')
         return value
@@ -66,7 +68,7 @@ class ChangePasswordSerializer(serializers.Serializer):
     
     def save(self, **kwargs):
         user_id = self.context['request'].user.id
-        user = get_user_model().objects.get(id=user_id)
+        user = User.objects.get(id=user_id)
         user.set_password(self.validated_data['new_password'])
         user.save()
         return user
@@ -74,7 +76,7 @@ class ChangePasswordSerializer(serializers.Serializer):
 
 class UserListSerializer(serializers.ModelSerializer):
     class Meta:
-        model = get_user_model()
+        model = User
         fields = ['id', 'first_name', 'last_name', 'profile_picture']
 
 
@@ -89,6 +91,19 @@ class ChatSerializer(serializers.ModelSerializer):
         model = Chat
         fields = ['id', 'users', 'user_detail']
 
+    def validate_users(self, value):
+        if len(value) != 2:
+            raise serializers.ValidationError(
+                'Количество пользователей должно быть равно 2'
+            )
+        if Chat.objects.filter(users__in=value):
+            raise serializers.ValidationError(
+                'Данный чат уже существует. Вы не можете создать'
+                'уже существующий.'
+            )
+        return value
+
+
     def get_user_detail(self, obj):
         user_id = self.context['request'].user.id
         user = obj.users.exclude(id=user_id).first()
@@ -96,7 +111,7 @@ class ChatSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         users_ids = validated_data.pop('users')
-        users = get_user_model().objects.filter(id__in=users_ids)
+        users = User.objects.filter(id__in=users_ids)
         chat = Chat.objects.create()
         chat.users.set(users)
         return chat
@@ -120,5 +135,5 @@ class ChatDetailSerializer(serializers.ModelSerializer):
 
 class OtherUserSerializer(serializers.ModelSerializer):
     class Meta:
-        model = get_user_model()
+        model = User
         fields = ['id', 'first_name', 'last_name', 'profile_picture', 'about_self']
