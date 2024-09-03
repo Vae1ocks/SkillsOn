@@ -153,7 +153,43 @@ class TestUser(APITestCase):
         data = {'users': [user.id, user2.id]}
 
         response = self.client.post(url, data)
-        self.assertEqual(response.status_code, 201)
+        self.assertEqual(
+            response.status_code, status.HTTP_201_CREATED
+        )
+        chats = Chat.objects.all()
+        self.assertEqual(len(chats), 1)
+
+    def test_chat_unsuccessful_create_more_2_users(self):
+        user = self.user_create()
+        user2 = self.user_create(email='testemail@test.com')
+        user3 = self.user_create(email='testemail333@test.com')
+        self.client.login(username=self.email, password=self.password)
+        url = reverse('users:chat_list')
+        data = {'users': [user.id, user2.id, user3.id]}
+
+        response = self.client.post(url, data)
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST
+        )
+        chats = Chat.objects.all()
+        self.assertEqual(len(chats), 0)
+
+    def test_existing_chat_unsuccessful_create(self):
+        user = self.user_create()
+        user2 = self.user_create(email='testemail@test.com')
+        chat = Chat.objects.create()
+        chat.users.set([user, user2])
+
+        self.client.login(username=self.email, password=self.password)
+        url = reverse('users:chat_list')
+        data = {'users': [user.id, user2.id]}
+
+        response = self.client.post(url, data)
+        self.assertEqual(
+            response.status_code, status.HTTP_400_BAD_REQUEST
+        )
+        chats = Chat.objects.all()
+        self.assertEqual(len(chats), 1)
 
     def test_chat_list(self):
         user = self.user_create()
@@ -165,6 +201,7 @@ class TestUser(APITestCase):
 
         response = self.client.get(url)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
+
         data = response.json()
         users_detail = data[0]['user_detail']
         self.assertEqual(len(users_detail), 4)
