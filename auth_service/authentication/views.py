@@ -62,6 +62,21 @@ class RegistrationConfirmationView(APIView):
 class RegistrationCategoryChoiceView(APIView):
     serializer_class = CategorySerializer # Только для drf_spectacular
 
+    def validate_preferences(self, request, preferences):
+        """
+        Для валидации переданных пользователем на бэкенд предпочтений,
+        чтобы в его профиле не было предпочтений, которых даже может
+        не быть в базе данных.
+        """
+
+        base_url = request.build_absolute_uri('/')
+        relative_url = 'courses/validate_user_preferences'
+        url = f'{base_url}{relative_url}'
+        response = requests.post(url, data=preferences)
+
+        if response.status_code == status.HTTP_200_OK:
+            return True
+
     @extend_schema(
         description='Третий этап регистрации: выбор предпочтений. '
                     'Возвращает список json-объектов, что показаны в примере. '
@@ -87,20 +102,28 @@ class RegistrationCategoryChoiceView(APIView):
     )
     def post(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
-            return Response({'detail': 'Почта не подтверждена'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {'detail': 'Почта не подтверждена'},
+                status=status.HTTP_403_FORBIDDEN
+            )
+
         serializer = CategorySerializer(data=request.data, many=True)
+
         if len(serializer.initial_data) < 3:
             raise serializers.ValidationError(
-                'Вы должны выбрать минимум 3 предпочтения'
+                'Вы должны выбрать минимум 3 предпочтения.'
             )
+
         if serializer.is_valid():
             registration_data = request.session.pop('registration_data', None)
+
             if not registration_data:
                 return Response(
                     {'detail':'Данные для регистрации'
                               'не предоставлены'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
+
             categories_liked = serializer.data
             full_reg_data = {**registration_data, 'categories_liked': []}
             for category in categories_liked:

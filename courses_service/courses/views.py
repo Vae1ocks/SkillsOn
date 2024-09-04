@@ -2,6 +2,7 @@ from rest_framework.generics import (ListAPIView, CreateAPIView,
                                      UpdateAPIView,
                                      RetrieveUpdateDestroyAPIView,
                                      DestroyAPIView, GenericAPIView)
+from rest_framework.views import APIView
 from rest_framework.viewsets import ModelViewSet
 from rest_framework import status
 from rest_framework.response import Response
@@ -9,7 +10,7 @@ from rest_framework.response import Response
 from rest_framework.permissions import IsAuthenticated, SAFE_METHODS, AllowAny
 from rest_framework.exceptions import NotFound, ValidationError, ParseError
 
-from django.db.models import Func, IntegerField
+from django.db.models import Func, IntegerField, Q
 from django.db.models.functions import Lower
 
 from . import serializers
@@ -517,3 +518,23 @@ class LessonCommentUpdateView(UpdateAPIView):
 class LessonCommentDestroyView(DestroyAPIView):
     permission_classes = [IsAuthor]
     queryset = LessonComment.objects.all()
+
+
+class ValidateUserPreferencesView(APIView):
+    """
+    Для проверки, действительно ли переданные пользователем данные
+    о предпочтениях на третьем этапе регистрации валидны.
+    Используется для внутреннего межсервисного взаимодействия
+    (с auth_service).
+    """
+
+    def post(self, request, *args, **kwargs):
+        conditions = request.data
+        query = Q()
+        for condition in conditions:
+            query |= Q(**condition)
+
+        categories_quantity = Category.objects.filter(query).count()
+        if categories_quantity == len(condition):
+            return Response(status=status.HTTP_200_OK)
+        return Response(status=status.HTTP_400_BAD_REQUEST)
