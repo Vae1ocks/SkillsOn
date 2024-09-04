@@ -76,6 +76,7 @@ class RegistrationCategoryChoiceView(APIView):
 
         if response.status_code == status.HTTP_200_OK:
             return True
+        return False
 
     @extend_schema(
         description='Третий этап регистрации: выбор предпочтений. '
@@ -115,6 +116,15 @@ class RegistrationCategoryChoiceView(APIView):
             )
 
         if serializer.is_valid():
+            is_valid_preferences = self.validate_preferences(
+                request, serializer.validated_data
+            )
+            if not is_valid_preferences:
+                raise serializers.ValidationError(
+                    'Данные о предпочтениях некорректны. '
+                    'Таких категорий не существует.'
+                )
+
             registration_data = request.session.pop('registration_data', None)
 
             if not registration_data:

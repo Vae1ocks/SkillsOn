@@ -100,7 +100,11 @@ class AuthServiceTest(APITestCase):
         self.assertEqual(response.json()[0], {'id': 1, 'title': '1st category'})
 
     @patch('authentication.views.current_app.send_task')
-    def test_registration_categories_choice_post(self, mock_send_task):
+    @patch('authentication.views.requests.post')
+    def test_registration_categories_choice_post(self, mock_requests_post,
+                                                 mock_send_task):
+        mock_requests_post.return_value.status_code = status.HTTP_200_OK
+
         reg_data = {
             'email': 'test@test.com',
             'first_name': 'Test',
@@ -140,6 +144,45 @@ class AuthServiceTest(APITestCase):
             kwargs={**full_reg_data},
             queue='user_service_queue'
         )
+
+    @patch('authentication.views.requests.post')
+    def test_registration_categories_choice_post_data_incorrect(
+            self, mock_requests_post
+    ):
+        mock_requests_post.return_value.status_code = \
+            status.HTTP_400_BAD_REQUEST
+
+        reg_data = {
+            'email': 'test@test.com',
+            'first_name': 'Test',
+            'last_name': 'Test',
+            'password': '29048fhweivu'
+        }
+        session = self.client.session
+        session['is_email_confirmed'] = True
+        session['registration_data'] = reg_data
+        session.save()
+
+        categories_liked_data = [{
+                                     'id': 3654653,
+                                     'title': 'Invalid title'
+                                 },
+                                 {
+                                     'id': 55555,
+                                     'title': 'Sample'
+                                 },
+                                 {
+                                     'id': 3,
+                                     'title': '3rd category'
+                                 },
+                                 {
+                                     'id': 4,
+                                     'title': '4th category'
+                                 }
+        ]
+        url = reverse('authentication:registration_category_choice')
+        response = self.client.post(url, categories_liked_data, format='json')
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_registration_categories_choice_post_forbidden(self):
         categories_liked_data = [{
@@ -196,7 +239,6 @@ class AuthServiceTest(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
     def test_registration_categories_choice_post_less_3_values(self):
-
         reg_data = {
             'email': 'test@test.com',
             'first_name': 'Test',
@@ -222,7 +264,7 @@ class AuthServiceTest(APITestCase):
 
     def test_login(self):
         user = user_create(email='test@test.com', password='testpassword')
-        
+
         url = reverse('authentication:token_obtain_pair')
         data = {
             'email': 'test@test.com',
@@ -244,7 +286,7 @@ class TestPasswordReset(APITestCase):
         data = {'email': email}
 
         response = self.client.post(url, data=data, format='json')
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertEqual(len(outbox), 1)
         session = self.client.session
@@ -282,12 +324,12 @@ class TestPasswordReset(APITestCase):
         session['email'] = email
         session['is_email_confirmed'] = True
         session.save()
-        
+
         response = self.client.post(url, data=data, format='json')
         session = self.client.session
 
         user = get_user_model().objects.get(email=email)
-        
+
         self.assertEqual(response.status_code, 200)
         self.assertNotIn('is_email_confirmed', session)
         self.assertNotIn('email', session)
