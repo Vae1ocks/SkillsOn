@@ -89,6 +89,10 @@ class RegistrationCategoryChoiceView(APIView):
         if not request.session.get('is_email_confirmed'):
             return Response({'detail': 'Почта не подтверждена'}, status=status.HTTP_403_FORBIDDEN)
         serializer = CategorySerializer(data=request.data, many=True)
+        if len(serializer.validated_data) < 3:
+            raise serializers.ValidationError(
+                'Вы должны выбрать минимум 3 предпочтения'
+            )
         if serializer.is_valid():
             registration_data = request.session.pop('registration_data', None)
             if not registration_data:
