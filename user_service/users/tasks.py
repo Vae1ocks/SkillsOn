@@ -22,6 +22,7 @@ def update_reset_password(email, password):
 
 @shared_task(name='user_service.create_user')
 def create_user(**data):
+    # preference_data = data.pop('')
     get_user_model().objects.create_user(**data)
 
 @shared_task(name='user_service.profit_income')

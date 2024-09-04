@@ -163,6 +163,63 @@ class AuthServiceTest(APITestCase):
         response = self.client.post(url, categories_liked_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
 
+    def test_registration_categories_choice_post_invalid_data(self):
+        reg_data = {
+            'email': 'test@test.com',
+            'first_name': 'Test',
+            'last_name': 'Test',
+            'password': '29048fhweivu'
+        }
+        session = self.client.session
+        session['is_email_confirmed'] = True
+        session['registration_data'] = reg_data
+        session.save()
+
+        categories_liked_data = [{
+                                     'id': 1,
+                                     'title': '1st category'
+                                 },
+                                 {
+                                     'id': 2,
+                                 },
+                                 {
+                                     'title': '3rd category'
+                                 },
+                                 {
+                                     'id': 4,
+                                 }
+        ]
+        url = reverse('authentication:registration_category_choice')
+        response = self.client.post(
+            url, categories_liked_data, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_registration_categories_choice_post_less_3_values(self):
+
+        reg_data = {
+            'email': 'test@test.com',
+            'first_name': 'Test',
+            'last_name': 'Test',
+            'password': '29048fhweivu'
+        }
+        session = self.client.session
+        session['is_email_confirmed'] = True
+        session['registration_data'] = reg_data
+        session.save()
+
+        categories_liked_data = [
+            {
+                'id': 1,
+                'title': '1st category'
+            },
+        ]
+        url = reverse('authentication:registration_category_choice')
+        response = self.client.post(
+            url, categories_liked_data, format='json'
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_login(self):
         user = user_create(email='test@test.com', password='testpassword')
         
