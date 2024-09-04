@@ -96,8 +96,11 @@ class RegistrationCategoryChoiceView(APIView):
         if serializer.is_valid():
             registration_data = request.session.pop('registration_data', None)
             if not registration_data:
-                return Response({'detail': 'Данные для регистрации не предоставлены'},
-                                status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'detail':'Данные для регистрации'
+                              'не предоставлены'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
             categories_liked = serializer.data
             full_reg_data = {**registration_data, 'categories_liked': []}
             for category in categories_liked:
@@ -110,9 +113,15 @@ class RegistrationCategoryChoiceView(APIView):
                     queue='user_service_queue'
                 )
                 user_serializer.save()
-                return Response(user_serializer.data, status=status.HTTP_201_CREATED)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    user_serializer.data, status=status.HTTP_201_CREATED
+                )
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class PasswordResetView(APIView):
@@ -134,10 +143,16 @@ class PasswordResetView(APIView):
                     settings.EMAIL_HOST_USER,
                     [email]
                 )
-                return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
-            return Response({'detail': 'Неверный email'},
-                            status=status.HTTP_404_NOT_FOUND)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'detail': 'ok'}, status=status.HTTP_200_OK
+                )
+            return Response(
+                {'detail': 'Неверный email'},
+                status=status.HTTP_404_NOT_FOUND
+            )
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+        )
     
 
 class PasswordResetConfirmationView(APIView):
@@ -148,12 +163,21 @@ class PasswordResetConfirmationView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = ConfirmationCodeSerializer(data=request.data)
         if serializer.is_valid():
-            if serializer.data['code'] == request.session.get('confirmation_code'):
+            if serializer.data['code'] == request.session.get(
+                'confirmation_code'
+            ):
                 request.session['is_email_confirmed'] = True
                 request.session.pop('confirmation_code')
-                return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
-            return Response({'code': 'Неверный код подтверждения'}, status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'detail': 'ok'}, status=status.HTTP_200_OK
+                )
+            return Response(
+                {'code': 'Неверный код подтверждения'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+        )
     
 
 class PasswordResetNewPasswordView(APIView):
@@ -164,12 +188,16 @@ class PasswordResetNewPasswordView(APIView):
                                'по задумке запрашивается лишь во фронтенде).')
     def post(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
-            return Response({'detail': 'Email not confirmed'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {'detail': 'Email not confirmed'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         serializer = PasswordSerializer(data=request.data)
         if serializer.is_valid():
             password = serializer.validated_data['password']
             email = request.session.get('email')
-            user_exists = get_user_model().objects.filter(email=email).exists()
+            user_exists = get_user_model().\
+                objects.filter(email=email).exists()
             if user_exists:
                 user = get_user_model().objects.get(email=email)
                 current_app.send_task(
@@ -183,7 +211,14 @@ class PasswordResetNewPasswordView(APIView):
                 user.save()
                 request.session.pop('is_email_confirmed', None)
                 request.session.pop('email', None)
-                return Response({'detail': 'Пароль успешно обновлён'}, status=status.HTTP_200_OK)
-            return Response({'detail': 'Неверный email, пользователь не найден'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                return Response(
+                    {'detail': 'Пароль успешно обновлён'},
+                    status=status.HTTP_200_OK
+                )
+            return Response(
+                {'detail': 'Неверный email, пользователь не найден'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+        )

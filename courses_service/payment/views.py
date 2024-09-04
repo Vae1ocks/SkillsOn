@@ -45,7 +45,9 @@ class YookassaPaymentView(APIView):
                     },
                     'confirmation': {
                         'type': 'redirect',
-                        'return_url': request.build_absolute_uri(reverse_lazy('courses:overview'))
+                        'return_url': request.build_absolute_uri(
+                            reverse_lazy('courses:overview')
+                        )
                     },
                     'capture': True,
                     'description': order.__str__(),

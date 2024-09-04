@@ -89,7 +89,7 @@ class YooKassaPaymentWebhook(APIView):
         #     '2a02:5180::/32',
         #     '77.75.154.206',
         # ]
-        # ЮКасса в списке ip адресов, с которых приходит уведомление, указала не
+        # --> ЮКасса в списке ip адресов, с которых приходит уведомление, указала не
         # все ip, ибо на этот ендпоинт приходят с ip-адресов, не указанных здесь.
         # Я смотрю новую версию доки.
         # ip = self.get_client_ip(request)
@@ -101,7 +101,9 @@ class YooKassaPaymentWebhook(APIView):
         if payload['event'].split('.')[0] == 'payment':
             if payload['object']['status'] == 'succeeded':
                 try:
-                    order = Order.objects.get(id=payload['object']['metadata']['order_id'])
+                    order = Order.objects.get(
+                        id=payload['object']['metadata']['order_id']
+                    )
                 except Order.DoesNotExist:
                     return Response(status=status.HTTP_404_NOT_FOUND)
                 payment_succeeded(order)

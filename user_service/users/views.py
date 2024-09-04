@@ -89,12 +89,16 @@ class ConfirmationOldEmailView(APIView):
                 if exp_code == entered_code:
                     request.session['email_confirmated'] = True
                     request.session.pop('confirmation_code')
-                    return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
+                    return Response(
+                        {'detail': 'ok'}, status=status.HTTP_200_OK
+                    )
                 return Response({'detail': 'Неверный код'},
                                 status=status.HTTP_400_BAD_REQUEST)
             return Response({'detail': 'Требуется ввод кода'},
                             status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class EmailUpdateSetNewEmailView(APIView):
@@ -115,11 +119,17 @@ class EmailUpdateSetNewEmailView(APIView):
                     body = f'Код подтверждения для смены почты: {confirmation_code}'
                     send_confirmation_code.delay(body=body, email=email)
                     request.session.pop('email_confirmated')
-                    return Response({'detail': 'Код подтверждения выслан'},
-                                    status=status.HTTP_200_OK)
-                return Response({'detail': 'Пользователь с данной почтой уже существует'},
-                                status=status.HTTP_409_CONFLICT)
-            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(
+                        {'detail': 'Код подтверждения выслан'},
+                        status=status.HTTP_200_OK
+                    )
+                return Response(
+                    {'detail': 'Пользователь с данной почтой уже существует'},
+                    status=status.HTTP_409_CONFLICT
+                )
+            return Response(
+                serializer.errors, status=status.HTTP_400_BAD_REQUEST
+            )
         return Response(status=status.HTTP_403_FORBIDDEN)
 
 
@@ -151,12 +161,20 @@ class EmailUpdateFinish(APIView):
                     )
                     user.email = email
                     user.save()
-                    return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
-                return Response({'detail': 'Неверный код'},
-                                status=status.HTTP_400_BAD_REQUEST)
-            return Response({'detail': 'Требуется ввод кода'},
-                            status=status.HTTP_400_BAD_REQUEST)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+                    return Response(
+                        {'detail': 'ok'}, status=status.HTTP_200_OK
+                    )
+                return Response(
+                    {'detail': 'Неверный код'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            return Response(
+                {'detail': 'Требуется ввод кода'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class PasswordChangeView(APIView):
@@ -176,14 +194,20 @@ class PasswordChangeView(APIView):
             current_app.send_task(
                 'auth_service.update_user_password',
                 kwargs={
-                    'email': get_user_model().objects.get(id=request.user.id).email,
+                    'email': get_user_model().objects.get(
+                        id=request.user.id
+                    ).email,
                     'password': serializer.validated_data['new_password']
                 }, queue='auth_service_queue'
             )
             serializer.save()
-            return Response({'detail': 'Пароль успешно обновлён'},
-                            status=status.HTTP_200_OK)
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {'detail': 'Пароль успешно обновлён'},
+                status=status.HTTP_200_OK
+            )
+        return Response(
+            serializer.errors, status=status.HTTP_400_BAD_REQUEST
+        )
 
 
 class ChatListView(ListCreateAPIView):

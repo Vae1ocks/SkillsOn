@@ -29,17 +29,24 @@ class CategoryListView(ListAPIView):
 
 class CourseOverviewList(GenericAPIView):
     @extend_schema(
-            description='Для просмотра курсов в случае отсутствия параметров фильтрации/сортировки. '
-                        'В данном случае количество курсов для каждой категории будет ограничено 8. '
+            description='Для просмотра курсов в случае отсутствия '
+                        'параметров фильтрации/сортировки. '
+                        'В данном случае количество курсов '
+                        'для каждой категории будет ограничено 8. '
                         'Количество "most_popular" - до 15.',
             responses={
                 200: OpenApiResponse(
                     response=inline_serializer(
                         name='Overview Serializer',
                         fields={
-                            'most_popular': serializers.CourseSerializer(many=True),
-                            'some_category_title': serializers.CourseSerializer(many=True),
-                            'some_other_category_title': serializers.CourseSerializer(many=True)
+                            'most_popular':
+                                serializers.CourseSerializer(many=True),
+
+                            'some_category_title':
+                                serializers.CourseSerializer(many=True),
+
+                            'some_other_category_title':
+                                serializers.CourseSerializer(many=True)
                         }
                     )
                 )
@@ -51,8 +58,12 @@ class CourseOverviewList(GenericAPIView):
 
         most_liked = Course.published.all().order_by('-rating')[:60]
         most_popular = Course.objects.annotate(student_count=Func(
-            'students', function='jsonb_array_length', output_field=IntegerField()
-        )).filter(id__in=most_liked.values('id')).order_by('-student_count')[:15]
+            'students',
+            function='jsonb_array_length',
+            output_field=IntegerField()
+        )).filter(id__in=most_liked.values(
+            'id'
+        )).order_by('-student_count')[:15]
         most_popular_ids = most_popular.values('id')
         most_popular_data = serializers.CourseSerializer(most_popular, many=True).data
         result['most_popular'] = most_popular_data
@@ -64,15 +75,22 @@ class CourseOverviewList(GenericAPIView):
             response = requests.get(url)
             if response.status_code == 200: # [{'id': 5, 'title': 'title}, {'id': 6, 'title': 'titttle'}]
                 categories_liked = response.json()
-                categories_ids = [category['id'] for category in categories_liked]
-                categories_liked = Category.objects.filter(id__in=categories_ids)
+                categories_ids = [
+                    category['id'] for category in categories_liked
+                ]
+                categories_liked = Category.objects.filter(
+                    id__in=categories_ids
+                )
                 for category in categories_liked:
                     rec_queryset = Course.published.filter(category=category).exclude(
                         id__in=most_popular_ids
                     ).order_by('-rating')[:8]
-                    data = serializers.CourseSerializer(rec_queryset, many=True).data
+                    data = serializers.CourseSerializer(rec_queryset,
+                                                        many=True).data
                     result[category.title] = data
-        categories = Category.objects.exclude(id__in=categories_liked).only('id', 'title')
+        categories = Category.objects.exclude(
+            id__in=categories_liked
+        ).only('id', 'title')
         for category in categories:
             queryset = Course.published.filter(category=category).exclude(
                 id__in=most_popular_ids
@@ -117,8 +135,12 @@ class CourseViewSet(ModelViewSet):
             queryset = Course.published.all()
 
             if category:
-                cat_titles = [title.strip().lower() for title in category.split(',')]
-                categories = Category.objects.annotate(lower_title=Lower('title')).filter(
+                cat_titles = [
+                    title.strip().lower() for title in category.split(',')
+                ]
+                categories = Category.objects.annotate(
+                    lower_title=Lower('title')
+                ).filter(
                     lower_title__in=cat_titles
                 )
                 queryset = queryset.filter(category__in=categories)
@@ -132,9 +154,11 @@ class CourseViewSet(ModelViewSet):
             if allowable_price:
                 try:
                     min_val, max_val = map(float, allowable_price.split(';'))
-                    queryset = queryset.filter(price__gte=min_val, price__lte=max_val)
+                    queryset = queryset.filter(price__gte=min_val,
+                                               price__lte=max_val)
                 except ValueError:
-                    raise ParseError('Параметр "price" должен быть в формате "min;max"')
+                    raise ParseError('Параметр "price" должен быть в '
+                                     'формате "min;max"')
             
             if order_by:
                 if order_by == 'price-high-to-low':
@@ -145,7 +169,9 @@ class CourseViewSet(ModelViewSet):
                     queryset = queryset.order_by('-rating')
 
             if not category and not title and not allowable_price and not order_by and not level:
-                raise ParseError('Необходимы параметры фильтрации и/или сортировки')
+                raise ParseError(
+                    'Необходимы параметры фильтрации и/или сортировки'
+                )
 
             return queryset
 
@@ -177,8 +203,10 @@ class CourseViewSet(ModelViewSet):
         return []
 
     @extend_schema(
-            description='Создание курса, "category" - название категории, "draft" - метка, хочет ли автор '
-                        'опубликовать курс или курс ещё подлежит редактированию, доступные варианты для '
+            description='Создание курса, "category" - название категории, '
+                        '"draft" - метка, хочет ли автор '
+                        'опубликовать курс или курс ещё подлежит '
+                        'редактированию, доступные варианты для '
                         '"level": "high", "medium", "low"'
     )
     def create(self, request, *args, **kwargs):
@@ -204,14 +232,23 @@ class CourseViewSet(ModelViewSet):
             first_name = response_data['first_name']
             last_name = response_data['last_name']
             author_image = response_data['profile_picture']
-            serializer = self.get_serializer(data=data, context={'request': request,
-                                                                 'first_name': first_name,
-                                                                 'last_name': last_name,
-                                                                 'author_image': author_image})
+            serializer = self.get_serializer(
+                data=data,
+                context={
+                    'request': request,
+                    'first_name': first_name,
+                    'last_name': last_name,
+                    'author_image': author_image
+                }
+            )
             serializer.is_valid(raise_exception=True)
             self.perform_create(serializer)
             headers = self.get_success_headers(serializer.data)
-            return Response(serializer.data, status=status.HTTP_201_CREATED, headers=headers)
+            return Response(
+                serializer.data,
+                status=status.HTTP_201_CREATED,
+                headers=headers
+            )
         return Response(status=status.HTTP_500_INTERNAL_SERVER_ERROR)
 
     def perform_update(self, serializer):
@@ -223,27 +260,54 @@ class CourseViewSet(ModelViewSet):
     def retrieve(self, request, *args, **kwargs):
         course = self.get_object()
         if (not course.moderated or course.draft) and (course.author != request.user.id):
-            return Response({'detail': 'Курс не найден'}, status=status.HTTP_404_NOT_FOUND)
+            return Response(
+                {'detail': 'Курс не найден'},
+                status=status.HTTP_404_NOT_FOUND
+            )
         serializer = self.get_serializer(course)
         return Response(serializer.data)
     
     @extend_schema(
-            description='Для фильтрации или сортировки товаров. Возвращает простой список товаров'
-                        'согласно параметрам фильтрации/сортировки. В случае отсутствия хотя бы 1 '
-                        'параметра, возвращает "Необходимы параметры фильтрации и/или сортировки".',
+            description='Для фильтрации или сортировки товаров. '
+                        'Возвращает простой список товаров'
+                        'согласно параметрам фильтрации/сортировки. '
+                        'В случае отсутствия хотя бы 1 '
+                        'параметра, возвращает "Необходимы параметры '
+                        'фильтрации и/или сортировки".',
             parameters=[
-                OpenApiParameter(name='title', description='Параметр для фильтрации по названию товаров',
-                                required=False, type=OpenApiTypes.STR),
-                OpenApiParameter(name='allowable_price', description='Параметр для фильтрации по цене в формате min;max',
-                                required=False, type=OpenApiTypes.INT),
-                OpenApiParameter(name='level', description='Для фильтрации по уровню',
-                                required=False, type=OpenApiTypes.STR),
-                OpenApiParameter(name='category', description='''Для фильтрации по товаров по категории,
-                                возможно указание как 1 категории, так и нескольких в формате cat_title1, 
-                                cat_title2. Пробел между значениями не учитывается. Регистр не учитывается
-                                ''', required=False, type=OpenApiTypes.STR),
-                OpenApiParameter(name='order_by', description='''Для сортировки товаров. Возможные значения: 
-                            price-high-to-low, price-low-to-high, rating-high-to-low''',
+                OpenApiParameter(name='title',
+                                 description='Параметр для фильтрации по '
+                                             'названию товаров',
+                                 required=False,
+                                 type=OpenApiTypes.STR),
+
+                OpenApiParameter(name='allowable_price',
+                                 description='Параметр для фильтрации по '
+                                             'цене в формате min;max',
+                                 required=False,
+                                 type=OpenApiTypes.INT),
+
+                OpenApiParameter(name='level',
+                                 description='Для фильтрации по уровню',
+                                 required=False,
+                                 type=OpenApiTypes.STR),
+
+                OpenApiParameter(name='category',
+                                 description='''Для фильтрации по товаров 
+                                                по категории,
+                                                возможно указание как 1 категории, 
+                                                так и нескольких в формате cat_title1, 
+                                                cat_title2. Пробел между значениями 
+                                                не учитывается. Регистр не учитывается
+                                                 ''',
+                                 required=False,
+                                 type=OpenApiTypes.STR),
+
+                OpenApiParameter(name='order_by',
+                                 description='''Для сортировки товаров. 
+                                                Возможные значения: 
+                                                price-high-to-low, price-low-to-high, 
+                                                rating-high-to-low''',
                             required=False, type=OpenApiTypes.STR)
             ]
     )
@@ -252,7 +316,10 @@ class CourseViewSet(ModelViewSet):
     
     def perform_destroy(self, instance):
         if len(instance.students) != 0:
-            return Response({'detail': 'more than 0 students'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {'detail': 'more than 0 students'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         instance.delete()
 
 

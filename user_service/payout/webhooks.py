@@ -37,11 +37,15 @@ class YookassaPayoutWebhook(APIView):
             return Response(status=status.HTTP_403_FORBIDDEN)
         
         payload = request.data
-        user_payout = UserPayout.objects.get(id=payload['metadata']['user_payout_id'])
+        user_payout = UserPayout.objects.get(
+            id=payload['metadata']['user_payout_id']
+        )
         value = payload['object']['amount']['value']
         if payload['event'].split('.')[0] == 'payout':
             if payload['status'] == 'succeeded':
-                user = get_user_model().objects.get(email=payload['metadata']['user_email'])
+                user = get_user_model().objects.get(
+                    email=payload['metadata']['user_email']
+                )
                 user.balance -= value
                 user.save()
                 user_payout.status = 'succeeded'
