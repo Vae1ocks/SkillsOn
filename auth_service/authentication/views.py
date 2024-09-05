@@ -37,7 +37,8 @@ class RegistrationView(APIView):
                 email=serializer.validated_data['email'],
                 body=f'Your confirmation code: {confirmation_code}'
             )
-            return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
+            return Response({'detail': 'ok',
+                             'code': confirmation_code}, status=status.HTTP_200_OK)
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
         
 
@@ -70,9 +71,10 @@ class RegistrationCategoryChoiceView(APIView):
         """
 
         base_url = request.build_absolute_uri('/')
-        relative_url = 'courses/validate_user_preferences'
+        relative_url = 'courses/validate_user_preferences/'
         url = f'{base_url}{relative_url}'
-        response = requests.post(url, data=preferences)
+
+        response = requests.post(url, json=preferences)
 
         if response.status_code == status.HTTP_200_OK:
             return True
@@ -85,10 +87,14 @@ class RegistrationCategoryChoiceView(APIView):
     )
     def get(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
-            return Response({'detail': 'Почта не подтверждена'}, status=status.HTTP_403_FORBIDDEN)
+            return Response(
+                {'detail': 'Почта не подтверждена'},
+                status=status.HTTP_403_FORBIDDEN
+            )
         base_uri = request.build_absolute_uri('/')
         relative_url = 'courses/category-list/'
         url = f'{base_uri}{relative_url}'
+
         response = requests.get(url)
         if response.status_code == 200:
             categories = response.json()

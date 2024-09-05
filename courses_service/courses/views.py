@@ -101,7 +101,6 @@ class CourseOverviewList(GenericAPIView):
         return Response(result, status.HTTP_200_OK)
     
 
-
 class CourseViewSet(ModelViewSet):
     def get_queryset(self):
         if self.action == 'list':
@@ -535,6 +534,6 @@ class ValidateUserPreferencesView(APIView):
             query |= Q(**condition)
 
         categories_quantity = Category.objects.filter(query).count()
-        if categories_quantity == len(condition):
+        if categories_quantity == len(conditions):
             return Response(status=status.HTTP_200_OK)
         return Response(status=status.HTTP_400_BAD_REQUEST)

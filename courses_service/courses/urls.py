@@ -12,9 +12,11 @@ urlpatterns = [
     path('category-list/',
          views.CategoryListView.as_view(),
          name='categories_list'),
-
+    path('validate_user_preferences/',
+         views.ValidateUserPreferencesView.as_view()),
     path('overview/', views.CourseOverviewList.as_view(), name='overview'),
     path('', include(router.urls)),
+
     path('user-courses/list/',
          views.UserCourseListView.as_view(), name='user_courses_list'),
     path('<slug:slug>/<int:pk>/', views.CourseViewSet.as_view({'get': 'retrieve',
@@ -47,7 +49,4 @@ urlpatterns = [
     path('lesson-comment/<int:pk>/delete/',
          views.LessonCommentDestroyView.as_view(),
          name='lesson_comment_delete'),
-
-    path('validate_user_preferences/',
-         views.ValidateUserPreferencesView.as_view())
 ]
