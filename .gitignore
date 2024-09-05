@@ -54,6 +54,12 @@ atlassian-ide-plugin.xml
 *.py[cod]
 *$py.class
 
+# Databases data generated with volumes
+db_auth_data/
+db_courses_data/
+db_user_data/
+db_kong_data/
+
 # Distribution / packaging
 .Python build/
 develop-eggs/
