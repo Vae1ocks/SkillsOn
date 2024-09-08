@@ -118,9 +118,10 @@ class RegistrationCategoryChoiceView(APIView):
 
         serializer = CategorySerializer(data=request.data, many=True)
 
-        if len(serializer.initial_data) < 3:
+        data_quantity = len(serializer.initial_data)
+        if data_quantity < 3 or data_quantity >= 10:
             raise serializers.ValidationError(
-                'Вы должны выбрать минимум 3 предпочтения.'
+                'Выберите от 3 до 10 предпочтений.'
             )
 
         if serializer.is_valid():
