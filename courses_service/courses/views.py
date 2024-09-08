@@ -532,7 +532,7 @@ class ValidateUserPreferencesView(APIView):
         categories = Category.objects.filter(
             id__in=categories_ids
         )
-        if categories != len(categories_ids):
+        if categories.count() != len(categories_ids):
             return Response(status=status.HTTP_400_BAD_REQUEST)
 
         categories_data = []
