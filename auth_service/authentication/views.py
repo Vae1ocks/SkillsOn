@@ -63,7 +63,7 @@ class RegistrationConfirmationView(APIView):
 class RegistrationCategoryChoiceView(APIView):
     serializer_class = CategorySerializer # Только для drf_spectacular
 
-    def validate_preferences(self, request, preferences):
+    def validate_preferences(self, request, preferences_list):
         """
         Для валидации переданных пользователем на бэкенд предпочтений,
         чтобы в его профиле не было предпочтений, которых даже может
@@ -74,10 +74,10 @@ class RegistrationCategoryChoiceView(APIView):
         relative_url = 'courses/validate_user_preferences/'
         url = f'{base_url}{relative_url}'
 
-        response = requests.post(url, json=preferences)
+        response = requests.post(url, json=preferences_list)
 
         if response.status_code == status.HTTP_200_OK:
-            return True
+            return response.json()
         return False
 
     @extend_schema(
@@ -99,8 +99,10 @@ class RegistrationCategoryChoiceView(APIView):
         if response.status_code == 200:
             categories = response.json()
             return Response(categories, status=status.HTTP_200_OK)
-        return Response({'detail': 'Невозможно получить категории'},
-                        status=status.HTTP_500_INTERNAL_SERVER_ERROR)
+        return Response(
+            {'detail': 'Невозможно получить категории'},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+        )
 
     @extend_schema(
         description='Третий этапе регистрации: выбор предпочитаемых категорий. '
@@ -122,16 +124,26 @@ class RegistrationCategoryChoiceView(APIView):
             )
 
         if serializer.is_valid():
-            is_valid_preferences = self.validate_preferences(
-                request, serializer.validated_data
+            categories_ids = [
+                category['id'] for category in serializer.validated_data
+            ]
+            if len(categories_ids) != len(set(categories_ids)):
+                raise serializers.ValidationError(
+                    'Выберите только уникальные объекты'
+                )
+
+            preferences = self.validate_preferences(
+                request, categories_ids
             )
-            if not is_valid_preferences:
+            if not preferences:
                 raise serializers.ValidationError(
                     'Данные о предпочтениях некорректны. '
                     'Таких категорий не существует.'
                 )
 
-            registration_data = request.session.pop('registration_data', None)
+            registration_data = request.session.pop(
+                'registration_data', None
+            )
 
             if not registration_data:
                 return Response(
@@ -140,10 +152,12 @@ class RegistrationCategoryChoiceView(APIView):
                     status=status.HTTP_400_BAD_REQUEST
                 )
 
-            categories_liked = serializer.data
-            full_reg_data = {**registration_data, 'categories_liked': []}
-            for category in categories_liked:
-                full_reg_data['categories_liked'].append(category)
+            # categories_liked = serializer.data
+            full_reg_data = {
+                **registration_data, 'categories_liked': preferences
+            }
+            # for category in categories_liked:
+            #     full_reg_data['categories_liked'].append(category)
             user_serializer = UserSerializer(data=registration_data)
             if user_serializer.is_valid():
                 current_app.send_task(

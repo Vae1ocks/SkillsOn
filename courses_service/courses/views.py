@@ -528,12 +528,22 @@ class ValidateUserPreferencesView(APIView):
     """
 
     def post(self, request, *args, **kwargs):
-        conditions = request.data
-        query = Q()
-        for condition in conditions:
-            query |= Q(**condition)
+        categories_ids = request.data
+        categories = Category.objects.filter(
+            id__in=categories_ids
+        )
+        if categories != len(categories_ids):
+            return Response(status=status.HTTP_400_BAD_REQUEST)
 
-        categories_quantity = Category.objects.filter(query).count()
-        if categories_quantity == len(conditions):
-            return Response(status=status.HTTP_200_OK)
-        return Response(status=status.HTTP_400_BAD_REQUEST)
+        categories_data = []
+
+        for category in categories:
+            categories_data.append(
+                {
+                    'id': category.id,
+                    'title': category.title
+                }
+            )
+
+        return Response(categories_data, status.HTTP_200_OK)
+

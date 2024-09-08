@@ -104,6 +104,24 @@ class AuthServiceTest(APITestCase):
     def test_registration_categories_choice_post(self, mock_requests_post,
                                                  mock_send_task):
         mock_requests_post.return_value.status_code = status.HTTP_200_OK
+        mock_requests_post.return_value.json.return_value = [
+            {
+                "id": 1,
+                "title": "DevOps"
+            },
+            {
+                "id": 2,
+                "title": "Веб-разработка"
+            },
+            {
+                "id": 3,
+                "title": "iOS-разработка"
+            },
+            {
+                "id": 4,
+                "title": "Android-разработка"
+            }
+        ]
 
         reg_data = {
             'email': 'test@test.com',
@@ -116,28 +134,26 @@ class AuthServiceTest(APITestCase):
         session['registration_data'] = reg_data
         session.save()
 
-        categories_liked_data = [{
-                                     'id': 1,
-                                     'title': '1st category'
-                                 },
-                                 {
-                                     'id': 2,
-                                     'title': '2nd category'
-                                 },
-                                 {
-                                     'id': 3,
-                                     'title': '3rd category'
-                                 },
-                                 {
-                                     'id': 4,
-                                     'title': '4th category'
-                                 }
+        categories_liked_data = [
+            {
+                'id': 1
+            },
+            {
+                'id': 2
+            },
+            {
+                'id': 3
+            },
+            {
+                'id': 4
+            }
         ]
         url = reverse('authentication:registration_category_choice')
+
         response = self.client.post(url, categories_liked_data, format='json')
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         full_reg_data = {**reg_data, 'categories_liked': []}
-        for category in categories_liked_data:
+        for category in mock_requests_post.return_value.json.return_value:
             full_reg_data['categories_liked'].append(category)
         mock_send_task.assert_called_with(
             'user_service.create_user',
