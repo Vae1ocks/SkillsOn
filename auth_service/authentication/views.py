@@ -61,7 +61,7 @@ class RegistrationConfirmationView(APIView):
     
 
 class RegistrationCategoryChoiceView(APIView):
-    serializer_class = CategorySerializer # Только для drf_spectacular
+    serializer_class = IDSerializer # Только для drf_spectacular
 
     def validate_preferences(self, request, preferences_list):
         """
@@ -84,6 +84,7 @@ class RegistrationCategoryChoiceView(APIView):
         description='Третий этап регистрации: выбор предпочтений. '
                     'Возвращает список json-объектов, что показаны в примере. '
                     '[{...}, {...}, {...}]',
+        responses=CategorySerializer(many=True)
     )
     def get(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
@@ -107,7 +108,7 @@ class RegistrationCategoryChoiceView(APIView):
     @extend_schema(
         description='Третий этапе регистрации: выбор предпочитаемых категорий. '
                     '(Категории получить можно через get-запрос на этот ендпоинт).',
-        request=CategorySerializer(many=True)
+        request=IDSerializer(many=True)
     )
     def post(self, request, *args, **kwargs):
         if not request.session.get('is_email_confirmed'):
@@ -116,7 +117,7 @@ class RegistrationCategoryChoiceView(APIView):
                 status=status.HTTP_403_FORBIDDEN
             )
 
-        serializer = CategorySerializer(data=request.data, many=True)
+        serializer = IDSerializer(data=request.data, many=True)
 
         data_quantity = len(serializer.initial_data)
         if data_quantity < 3 or data_quantity >= 10:
