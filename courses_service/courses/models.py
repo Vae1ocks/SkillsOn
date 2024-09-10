@@ -14,25 +14,42 @@ from unidecode import unidecode
 
 
 class JSONLength(Func):
+    """
+    Для подсчёта длины поля json.
+    """
+
     function = 'jsonb_array_length'
     output_field = models.IntegerField()
 
 
 class Category(models.Model):
+    """
+    Категории курсов.
+    """
+
     title = models.CharField(max_length=150, unique=True)
-    slug = models.CharField(max_length=150, unique=True) # slug пока не надо, мб удалить в будущем
+    slug = models.CharField(max_length=150, unique=True)
 
     def __str__(self):
         return f'Category {self.title}'
 
 
 class CourseManager(models.Manager):
+    """
+    Для сортировки курсов по количеству студентов и цене.
+    """
+
     def get_queryset(self):
-        return super().get_queryset().filter(moderated=True).annotate(
-            students_count=JSONLength('students')).order_by('-price', '-students_count')
+        return (super().get_queryset().filter(moderated=True).annotate(
+            students_count=JSONLength('students'))
+                .order_by('-price', '-students_count'))
 
 
 class Course(models.Model):
+    """
+    Модель курсов.
+    """
+
     author = models.PositiveIntegerField()
     author_name = models.CharField(max_length=250, blank=True)
     author_image = models.ImageField(upload_to='courses/%Y/%m/%d/', blank=True, null=True)
@@ -80,6 +97,10 @@ class Course(models.Model):
     
 
 class Comment(models.Model):
+    """
+    Абстрактная модель комментария.
+    """
+
     class Meta:
         abstract = True
     
@@ -93,6 +114,10 @@ class Comment(models.Model):
 
 
 class CourseComment(Comment):
+    """
+    Модель комментария к курсу.
+    """
+
     course = models.ForeignKey(Course,
                                on_delete=models.CASCADE,
                                related_name='comments')
@@ -106,11 +131,20 @@ class CourseComment(Comment):
     
 
 class LessonManager(models.Manager):
+    """
+    Для фильтрации курсов по тому, помечены ли они к публикации и
+    прошли ли модерацию.
+    """
+
     def get_published(self):
         return super().get_queryset().filter(moderated=True, draft=False)
 
 
 class Lesson(models.Model):
+    """
+    Модель урока курса.
+    """
+
     course = models.ForeignKey(Course,
                                on_delete=models.CASCADE,
                                related_name='lessons')
@@ -138,6 +172,11 @@ class Lesson(models.Model):
 
 
 class LessonComment(Comment):
+    """
+    Модель комментария к уроку курса.
+    Урок является связующим объектов Content.
+    """
+
     lesson = models.ForeignKey(Lesson,
                                on_delete=models.CASCADE,
                                related_name='comments')
@@ -151,6 +190,10 @@ class LessonComment(Comment):
 
     
 class Content(models.Model):
+    """
+    Модель контента к уроку.
+    """
+
     lesson = models.ForeignKey(Lesson,
                                on_delete=models.CASCADE,
                                related_name='contents')
