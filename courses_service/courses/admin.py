@@ -22,6 +22,7 @@ class CourseCommentInline(admin.TabularInline):
 
 class LessonInLine(admin.TabularInline):
     model = Lesson
+    prepopulated_fields = {'slug': ('title',)}
 
 
 class ContentInLine(GenericTabularInline):

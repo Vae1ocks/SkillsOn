@@ -278,7 +278,10 @@ class LessonSerializer(serializers.ModelSerializer):
 class CourseCommentSerializer(serializers.ModelSerializer):
     class Meta:
         model = models.CourseComment
-        fields = ['id', 'author_name', 'author_image', 'rating', 'body', 'created', 'course']
+        fields = [
+            'id', 'author_name', 'author_image',
+            'rating', 'body', 'created', 'course'
+        ]
 
     def create(self, validated_data):
         request = self.context.get('request')
@@ -312,8 +315,11 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = models.Course
-        fields = ['id', 'title', 'level', 'author', 'author_name', 'author_image',
-                  'category', 'price', 'students_count']
+        fields = [
+            'id', 'title', 'level', 'author',
+            'author_name', 'author_image',
+            'category', 'price', 'students_count'
+        ]
     
     @extend_schema_field(serializers.IntegerField())
     def get_students_count(self, obj):
