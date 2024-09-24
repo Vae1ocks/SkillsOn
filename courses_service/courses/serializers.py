@@ -312,14 +312,20 @@ class CourseCommentSerializer(serializers.ModelSerializer):
 class CourseSerializer(serializers.ModelSerializer):
     students_count = serializers.SerializerMethodField()
     category = CategorySerializer(read_only=True)
+    comments_count = serializers.SerializerMethodField()
 
     class Meta:
         model = models.Course
         fields = [
             'id', 'title', 'level', 'author',
             'author_name', 'author_image',
-            'category', 'price', 'students_count'
+            'category', 'price', 'students_count',
+            'rating', 'comments_count'
         ]
+
+    @extend_schema_field(serializers.IntegerField())
+    def get_comments_count(self, obj):
+        return obj.comments.count()
     
     @extend_schema_field(serializers.IntegerField())
     def get_students_count(self, obj):
