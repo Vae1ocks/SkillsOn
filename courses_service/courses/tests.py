@@ -1,3 +1,5 @@
+from unicodedata import category
+
 from rest_framework.test import APITestCase, override_settings
 from django.urls import reverse
 from rest_framework import status
@@ -20,20 +22,26 @@ class TestCourses(APITestCase):
     def category_create(self, title='TestCategory'):
         return Category.objects.create(title=title, slug=slugify(title))
 
+    def course_create(
+        self, category, author=1,
+        title='TestCourse',
+        price=Decimal(0), description='Test desc for course',
+        draft=False, moderated=True, students=[]
+    ):
+        return Course.objects.create(
+            author=author, title=title, category=category,
+            slug=slugify(title), price=price, description=description,
+            draft=draft, moderated=moderated, students=students
+        )
 
-    def course_create(self, category, author=1,
-                    title='TestCourse',
-                    price=Decimal(0), description='Test desc for course',
-                    draft=False, moderated=True, students=[]):
-        
-        return Course.objects.create(author=author, title=title, category=category,
-                                    slug=slugify(title), price=price, description=description,
-                                    draft=draft,moderated=moderated, students=students)
 
-
-    def setup(self, author=1, cat_title='TestCategory', course_title='TestCourse'):
+    def setup(
+        self, author=1, cat_title='TestCategory', course_title='TestCourse'
+    ):
         category = self.category_create(title=cat_title)
-        course = self.course_create(category=category, author=author, title=course_title)
+        course = self.course_create(
+            category=category, author=author, title=course_title
+        )
         return course
     
     def create_user(self, username='test_user',
@@ -71,11 +79,15 @@ class TestCourses(APITestCase):
                           }
                       ])
         
-        course1 = self.course_create(category=category1)
-        course2 = self.course_create(title='TestCourse2',
-                                category=category2, price=Decimal(100), students=[1,2,3,4,5])
-        course3 = self.course_create(title='TestCourse3',
-                                category=category3, price=Decimal(100), students=[1,2])
+        course1 = self.course_create(category=category1, students=[])
+        course2 = self.course_create(
+            title='TestCourse2',
+            category=category2, price=Decimal(100), students=[1, 2, 3, 4, 5]
+        )
+        course3 = self.course_create(
+            title='TestCourse3',
+            category=category3, price=Decimal(100), students=[1, 2]
+        )
 
         url = reverse('courses:overview')
         response = self.client.get(url)
@@ -83,7 +95,9 @@ class TestCourses(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
         self.assertEqual(len(data), 4)
-        self.assertEqual(data['most_popular'][0], serializers.CourseSerializer(course2).data)
+        self.assertEqual(
+            data['most_popular'][0], serializers.CourseSerializer(course2).data
+        )
         self.assertIn(category1.title, data)
         self.assertIn(category2.title, data)
         self.assertIn(category3.title, data)
@@ -93,7 +107,9 @@ class TestCourses(APITestCase):
 
     def test_user_courses_list(self):
         user = self.create_user()
-        is_authenticated = self.client.login(username=self.username, password=self.password)
+        is_authenticated = self.client.login(
+            username=self.username, password=self.password
+        )
         self.assertTrue(is_authenticated)
         course = self.setup(author=user.id)
         course.students.append(user.id)
@@ -104,10 +120,44 @@ class TestCourses(APITestCase):
         response.user = user
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertEqual(len(data), 1)
-        self.assertEqual(data[0], serializers.UserCourseSerializer(
-            course, context={'request': response}).data)
-        self.assertTrue(data[0]['is_owner'])
+        self.assertEqual(
+            data['results'][0], serializers.UserCourseSerializer(
+                course, context={'request': response}
+            ).data
+        )
+        self.assertTrue(data['results'][0]['is_owner'])
+
+    def test_courses_list_pagination(self):
+        user = self.create_user()
+        is_authenticated = self.client.login(username=self.username, password=self.password)
+        self.assertTrue(is_authenticated)
+        category = self.category_create()
+
+        for i in range(11):
+            course = self.course_create(
+                category=category, author=user.id
+            )
+            course.students.append(user.id)
+            course.save()
+        url = reverse('courses:user_courses_list')
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+
+        data = response.json()
+        url = data['next']
+        self.assertIsNotNone(url)
+        self.assertEqual(data['count'], 11)
+        self.assertIsNone(data['previous'])
+        self.assertEqual(len(data['results']), 10)
+
+        response = self.client.get(url)
+        data = response.json()
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data['count'], 11)
+        self.assertIsNotNone(data['previous'])
+        self.assertEqual(len(data['results']), 1)
+        self.assertIsNone(data['next'])
 
     @responses.activate
     def test_course_create(self):
@@ -200,9 +250,12 @@ class TestCourses(APITestCase):
                                               'category': f'{category1.title.upper()}, {category.title}'})
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         data = response.json()
-        self.assertEqual(len(data), 2)
-        self.assertEqual(data[0], serializers.CourseSerializer(course1).data)
-        self.assertEqual(data[1], serializers.CourseSerializer(course2).data)
+        self.assertEqual(
+            data['results'][0], serializers.CourseSerializer(course1).data
+        )
+        self.assertEqual(
+            data['results'][1], serializers.CourseSerializer(course2).data
+        )
 
     @responses.activate
     def test_course_comment_create(self):

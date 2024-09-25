@@ -22,7 +22,7 @@ from drf_spectacular.utils import extend_schema, OpenApiParameter, OpenApiTypes,
 import requests
 import json
 
-
+from rest_framework.pagination import PageNumberPagination
 class CategoryListView(ListAPIView):
     serializer_class = serializers.CategorySerializer
     queryset = Category.objects.all()
@@ -58,13 +58,12 @@ class CourseOverviewList(GenericAPIView):
         categories_liked = []
 
         most_liked = Course.published.all().order_by('-rating')[:60]
-        most_popular = Course.objects.annotate(student_count=Func(
-            'students',
-            function='jsonb_array_length',
-            output_field=IntegerField()
-        )).filter(id__in=most_liked.values(
-            'id'
-        )).order_by('-student_count')[:15]
+        most_popular = Course.objects.annotate(
+            student_count=Func(
+                'students',
+                function='jsonb_array_length',
+                output_field=IntegerField()
+            )).filter(id__in=most_liked.values('id')).order_by('-student_count')[:15]
         most_popular_ids = most_popular.values('id')
         most_popular_data = serializers.CourseSerializer(most_popular, many=True).data
         result['most_popular'] = most_popular_data
@@ -74,7 +73,7 @@ class CourseOverviewList(GenericAPIView):
             relative_url = f'users/user/{self.request.user.id}/personal-preferences/'
             url = f'{base_uri}{relative_url}'
             response = requests.get(url)
-            if response.status_code == 200: # [{'id': 5, 'title': 'title}, {'id': 6, 'title': 'titttle'}]
+            if response.status_code == 200:  # [{'id': 5, 'title': 'title}, {'id': 6, 'title': 'titttle'}]
                 categories_liked = response.json()
                 categories_ids = [
                     category['id'] for category in categories_liked
