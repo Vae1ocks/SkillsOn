@@ -1,22 +1,31 @@
 from django.db import models
 from django.core.exceptions import ValidationError
-from django.contrib.auth.models import (AbstractBaseUser,
-                                        BaseUserManager,
-                                        PermissionsMixin)
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 from decimal import Decimal
 
 
 class UserManager(BaseUserManager):
-    def _create_user(self, email, password,
-                     first_name, last_name,
-                     profile_picture, about_self,
-                     categories_liked, balance,
-                     **extra_fields):
+    def _create_user(
+        self,
+        email,
+        password,
+        first_name,
+        last_name,
+        profile_picture,
+        about_self,
+        categories_liked,
+        balance,
+        **extra_fields
+    ):
         if not email:
-            raise ValueError('You must write your email')
+            raise ValueError("You must write your email")
         if not password:
-            raise ValueError('Password must be provided')
-        
+            raise ValueError("Password must be provided")
+
         user = self.model(
             email=self.normalize_email(email),
             first_name=first_name,
@@ -32,29 +41,58 @@ class UserManager(BaseUserManager):
         user.save()
         return user
 
-    def create_user(self, email=None, password=None, first_name=None, last_name=None,
-                    profile_picture=None, about_self=None,
-                    categories_liked=None,
-                    balance=Decimal('0.00'), **extra_fields):
+    def create_user(
+        self,
+        email=None,
+        password=None,
+        first_name=None,
+        last_name=None,
+        profile_picture=None,
+        about_self=None,
+        categories_liked=None,
+        balance=Decimal("0.00"),
+        **extra_fields
+    ):
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
-        return self._create_user(email, password, first_name, last_name,
-                                 profile_picture, about_self,
-                                 categories_liked,
-                                 balance, **extra_fields)
+        return self._create_user(
+            email,
+            password,
+            first_name,
+            last_name,
+            profile_picture,
+            about_self,
+            categories_liked,
+            balance,
+            **extra_fields
+        )
 
-    def create_superuser(self, email=None, password=None,
-                         first_name='Default', last_name='Name',
-                         profile_picture=None, about_self=None,
-                         categories_liked=[],
-                         balance=Decimal('0.00'), **extra_fields):
+    def create_superuser(
+        self,
+        email=None,
+        password=None,
+        first_name="Default",
+        last_name="Name",
+        profile_picture=None,
+        about_self=None,
+        categories_liked=[],
+        balance=Decimal("0.00"),
+        **extra_fields
+    ):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
-        return self._create_user(email, password, first_name, last_name,
-                                 profile_picture, about_self,
-                                 categories_liked,
-                                 balance, **extra_fields)
+        return self._create_user(
+            email,
+            password,
+            first_name,
+            last_name,
+            profile_picture,
+            about_self,
+            categories_liked,
+            balance,
+            **extra_fields
+        )
 
 
 class User(AbstractBaseUser, PermissionsMixin):
@@ -63,14 +101,12 @@ class User(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(max_length=100)
     last_name = models.CharField(max_length=120)
     profile_picture = models.ImageField(
-        upload_to='users/%Y/%m/%d/', blank=True, null=True
+        upload_to="users/%Y/%m/%d/", blank=True, null=True
     )
-    about_self = models.CharField(
-        max_length=500, blank=True, null=True
-    )
+    about_self = models.CharField(max_length=500, blank=True, null=True)
 
     balance = models.DecimalField(
-        max_digits=10, decimal_places=2, default=Decimal('0.00')
+        max_digits=10, decimal_places=2, default=Decimal("0.00")
     )
     categories_liked = models.JSONField(default=list)
     date_joined = models.DateTimeField(auto_now_add=True)
@@ -81,31 +117,23 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     class Meta:
-        verbose_name = 'User'
-        verbose_name_plural = 'Users'
+        verbose_name = "User"
+        verbose_name_plural = "Users"
 
 
 class Chat(models.Model):
-    users = models.ManyToManyField(User, related_name='chats')
+    users = models.ManyToManyField(User, related_name="chats")
 
     def __str__(self):
-        return 'Chat'
+        return "Chat"
 
 
 class Message(models.Model):
-    chat = models.ForeignKey(
-        Chat,
-        on_delete=models.CASCADE,
-        related_name='messages'
-    )
-    author = models.ForeignKey(
-        User,
-        on_delete=models.CASCADE,
-        related_name='messages'
-    )
+    chat = models.ForeignKey(Chat, on_delete=models.CASCADE, related_name="messages")
+    author = models.ForeignKey(User, on_delete=models.CASCADE, related_name="messages")
     created = models.DateTimeField(auto_now_add=True)
     text = models.TextField()
