@@ -22,46 +22,48 @@ import random
 
 
 class RegistrationView(APIView):
-    serializer_class = UserSerializer # Только для drf_spectacular
+    serializer_class = UserSerializer  # Только для drf_spectacular
 
-    @extend_schema(
-        description='Первый этап регистрации: ввод персональных данных.'
-    )
+    @extend_schema(description="Первый этап регистрации: ввод персональных данных.")
     def post(self, request, *args, **kwargs):
         serializer = UserSerializer(data=request.data)
         if serializer.is_valid():
             confirmation_code = random.randint(100000, 999999)
-            request.session['confirmation_code'] = confirmation_code
-            request.session['registration_data'] = serializer.validated_data
+            request.session["confirmation_code"] = confirmation_code
+            request.session["registration_data"] = serializer.validated_data
             send_confiramtion_code.delay(
-                email=serializer.validated_data['email'],
-                body=f'Your confirmation code: {confirmation_code}'
+                email=serializer.validated_data["email"],
+                body=f"Your confirmation code: {confirmation_code}",
             )
-            return Response({'detail': 'ok',
-                             'code': confirmation_code}, status=status.HTTP_200_OK)
+            return Response(
+                {"detail": "ok", "code": confirmation_code}, status=status.HTTP_200_OK
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-        
+
 
 class RegistrationConfirmationView(APIView):
     serializer_class = ConfirmationCodeSerializer  # Только для drf_spectacular
 
     @extend_schema(
-        description='Второй этап регистрации: ввод кода подтверждения, отправленного '
-                    'на указанную электронную почту.'
+        description="Второй этап регистрации: ввод кода подтверждения, отправленного "
+        "на указанную электронную почту."
     )
     def post(self, request, *args, **kwargs):
         serializer = ConfirmationCodeSerializer(data=request.data)
         if serializer.is_valid():
-            if serializer.data['code'] == request.session.get('confirmation_code'):
-                request.session['is_email_confirmed'] = True
-                request.session.pop('confirmation_code')
-                return Response({'detail': 'ok'}, status=status.HTTP_200_OK)
-            return Response({'code': 'Неверный код подтверждения'}, status=status.HTTP_400_BAD_REQUEST)
+            if serializer.data["code"] == request.session.get("confirmation_code"):
+                request.session["is_email_confirmed"] = True
+                request.session.pop("confirmation_code")
+                return Response({"detail": "ok"}, status=status.HTTP_200_OK)
+            return Response(
+                {"code": "Неверный код подтверждения"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-    
+
 
 class RegistrationCategoryChoiceView(APIView):
-    serializer_class = IDSerializer # Только для drf_spectacular
+    serializer_class = IDSerializer  # Только для drf_spectacular
 
     def validate_preferences(self, request, preferences_list):
         """
@@ -70,9 +72,9 @@ class RegistrationCategoryChoiceView(APIView):
         не быть в базе данных.
         """
 
-        base_url = request.build_absolute_uri('/')
-        relative_url = 'courses/validate_user_preferences/'
-        url = f'{base_url}{relative_url}'
+        base_url = request.build_absolute_uri("/")
+        relative_url = "courses/validate_user_preferences/"
+        url = f"{base_url}{relative_url}"
 
         response = requests.post(url, json=preferences_list)
 
@@ -81,199 +83,163 @@ class RegistrationCategoryChoiceView(APIView):
         return False
 
     @extend_schema(
-        description='Третий этап регистрации: выбор предпочтений. '
-                    'Возвращает список json-объектов, что показаны в примере. '
-                    '[{...}, {...}, {...}]',
-        responses=CategorySerializer(many=True)
+        description="Третий этап регистрации: выбор предпочтений. "
+        "Возвращает список json-объектов, что показаны в примере. "
+        "[{...}, {...}, {...}]",
+        responses=CategorySerializer(many=True),
     )
     def get(self, request, *args, **kwargs):
-        if not request.session.get('is_email_confirmed'):
+        if not request.session.get("is_email_confirmed"):
             return Response(
-                {'detail': 'Почта не подтверждена'},
-                status=status.HTTP_403_FORBIDDEN
+                {"detail": "Почта не подтверждена"}, status=status.HTTP_403_FORBIDDEN
             )
-        base_uri = request.build_absolute_uri('/')
-        relative_url = 'courses/category-list/'
-        url = f'{base_uri}{relative_url}'
+        base_uri = request.build_absolute_uri("/")
+        relative_url = "courses/category-list/"
+        url = f"{base_uri}{relative_url}"
 
         response = requests.get(url)
         if response.status_code == 200:
             categories = response.json()
             return Response(categories, status=status.HTTP_200_OK)
         return Response(
-            {'detail': 'Невозможно получить категории'},
-            status=status.HTTP_500_INTERNAL_SERVER_ERROR
+            {"detail": "Невозможно получить категории"},
+            status=status.HTTP_500_INTERNAL_SERVER_ERROR,
         )
 
     @extend_schema(
-        description='Третий этапе регистрации: выбор предпочитаемых категорий. '
-                    '(Категории получить можно через get-запрос на этот ендпоинт).',
-        request=IDSerializer(many=True)
+        description="Третий этапе регистрации: выбор предпочитаемых категорий. "
+        "(Категории получить можно через get-запрос на этот ендпоинт).",
+        request=IDSerializer(many=True),
     )
     def post(self, request, *args, **kwargs):
-        if not request.session.get('is_email_confirmed'):
+        if not request.session.get("is_email_confirmed"):
             return Response(
-                {'detail': 'Почта не подтверждена'},
-                status=status.HTTP_403_FORBIDDEN
+                {"detail": "Почта не подтверждена"}, status=status.HTTP_403_FORBIDDEN
             )
 
         serializer = IDSerializer(data=request.data, many=True)
 
         data_quantity = len(serializer.initial_data)
         if data_quantity < 3 or data_quantity >= 10:
-            raise serializers.ValidationError(
-                'Выберите от 3 до 10 предпочтений.'
-            )
+            raise serializers.ValidationError("Выберите от 3 до 10 предпочтений.")
 
         if serializer.is_valid():
-            categories_ids = [
-                category['id'] for category in serializer.validated_data
-            ]
+            categories_ids = [category["id"] for category in serializer.validated_data]
             if len(categories_ids) != len(set(categories_ids)):
-                raise serializers.ValidationError(
-                    'Выберите только уникальные объекты'
-                )
+                raise serializers.ValidationError("Выберите только уникальные объекты")
 
-            preferences = self.validate_preferences(
-                request, categories_ids
-            )
+            preferences = self.validate_preferences(request, categories_ids)
             if not preferences:
                 raise serializers.ValidationError(
-                    'Данные о предпочтениях некорректны. '
-                    'Таких категорий не существует.'
+                    "Данные о предпочтениях некорректны. "
+                    "Таких категорий не существует."
                 )
 
-            registration_data = request.session.pop(
-                'registration_data', None
-            )
+            registration_data = request.session.pop("registration_data", None)
 
             if not registration_data:
                 return Response(
-                    {'detail':'Данные для регистрации'
-                              'не предоставлены'},
-                    status=status.HTTP_400_BAD_REQUEST
+                    {"detail": "Данные для регистрации" "не предоставлены"},
+                    status=status.HTTP_400_BAD_REQUEST,
                 )
 
             # categories_liked = serializer.data
-            full_reg_data = {
-                **registration_data, 'categories_liked': preferences
-            }
+            full_reg_data = {**registration_data, "categories_liked": preferences}
             # for category in categories_liked:
             #     full_reg_data['categories_liked'].append(category)
             user_serializer = UserSerializer(data=registration_data)
             if user_serializer.is_valid():
                 current_app.send_task(
-                    'user_service.create_user',
+                    "user_service.create_user",
                     kwargs={**full_reg_data},
-                    queue='user_service_queue'
+                    queue="user_service_queue",
                 )
                 user_serializer.save()
-                return Response(
-                    user_serializer.data, status=status.HTTP_201_CREATED
-                )
-            return Response(
-                serializer.errors, status=status.HTTP_400_BAD_REQUEST
-            )
-        return Response(
-            serializer.errors, status=status.HTTP_400_BAD_REQUEST
-        )
+                return Response(user_serializer.data, status=status.HTTP_201_CREATED)
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
 class PasswordResetView(APIView):
-    serializer_class = EmailSerializer # Только для drf_spectacular
+    serializer_class = EmailSerializer  # Только для drf_spectacular
 
-    @extend_schema(description='Первый этап сброса пароля: ввод почты')
+    @extend_schema(description="Первый этап сброса пароля: ввод почты")
     def post(self, request, *args, **kwargs):
         serializer = EmailSerializer(data=request.data)
         if serializer.is_valid():
-            email = serializer.validated_data['email']
+            email = serializer.validated_data["email"]
             user = get_user_model().objects.filter(email=email)
             if user:
                 confirmation_code = random.randint(100000, 999999)
-                request.session['confirmation_code'] = confirmation_code
-                request.session['email'] = email
+                request.session["confirmation_code"] = confirmation_code
+                request.session["email"] = email
                 send_mail(
-                    'Confirm your email',
-                    f'Your confirmation code: {confirmation_code}',
+                    "Confirm your email",
+                    f"Your confirmation code: {confirmation_code}",
                     settings.EMAIL_HOST_USER,
-                    [email]
+                    [email],
                 )
-                return Response(
-                    {'detail': 'ok'}, status=status.HTTP_200_OK
-                )
+                return Response({"detail": "ok"}, status=status.HTTP_200_OK)
             return Response(
-                {'detail': 'Неверный email'},
-                status=status.HTTP_404_NOT_FOUND
+                {"detail": "Неверный email"}, status=status.HTTP_404_NOT_FOUND
             )
-        return Response(
-            serializer.errors, status=status.HTTP_400_BAD_REQUEST
-        )
-    
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class PasswordResetConfirmationView(APIView):
-    serializer_class = ConfirmationCodeSerializer # Только для drf_spectacular
+    serializer_class = ConfirmationCodeSerializer  # Только для drf_spectacular
 
-    @extend_schema(description='Второй этап сброса пароля: '
-                               'ввод кода, отправленного на почту')
+    @extend_schema(
+        description="Второй этап сброса пароля: " "ввод кода, отправленного на почту"
+    )
     def post(self, request, *args, **kwargs):
         serializer = ConfirmationCodeSerializer(data=request.data)
         if serializer.is_valid():
-            if serializer.data['code'] == request.session.get(
-                'confirmation_code'
-            ):
-                request.session['is_email_confirmed'] = True
-                request.session.pop('confirmation_code')
-                return Response(
-                    {'detail': 'ok'}, status=status.HTTP_200_OK
-                )
+            if serializer.data["code"] == request.session.get("confirmation_code"):
+                request.session["is_email_confirmed"] = True
+                request.session.pop("confirmation_code")
+                return Response({"detail": "ok"}, status=status.HTTP_200_OK)
             return Response(
-                {'code': 'Неверный код подтверждения'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"code": "Неверный код подтверждения"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        return Response(
-            serializer.errors, status=status.HTTP_400_BAD_REQUEST
-        )
-    
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class PasswordResetNewPasswordView(APIView):
-    serializer_class = PasswordSerializer # Только для drf_spectacular
+    serializer_class = PasswordSerializer  # Только для drf_spectacular
 
-    @extend_schema(description='Третий этап сброса пароля: ввод нового пароля. '
-                               '(Повторный ввод нового пароля для подтверждения '
-                               'по задумке запрашивается лишь во фронтенде).')
+    @extend_schema(
+        description="Третий этап сброса пароля: ввод нового пароля. "
+        "(Повторный ввод нового пароля для подтверждения "
+        "по задумке запрашивается лишь во фронтенде)."
+    )
     def post(self, request, *args, **kwargs):
-        if not request.session.get('is_email_confirmed'):
+        if not request.session.get("is_email_confirmed"):
             return Response(
-                {'detail': 'Email not confirmed'},
-                status=status.HTTP_403_FORBIDDEN
+                {"detail": "Email not confirmed"}, status=status.HTTP_403_FORBIDDEN
             )
         serializer = PasswordSerializer(data=request.data)
         if serializer.is_valid():
-            password = serializer.validated_data['password']
-            email = request.session.get('email')
-            user_exists = get_user_model().\
-                objects.filter(email=email).exists()
+            password = serializer.validated_data["password"]
+            email = request.session.get("email")
+            user_exists = get_user_model().objects.filter(email=email).exists()
             if user_exists:
                 user = get_user_model().objects.get(email=email)
                 current_app.send_task(
-                    'user_service.update_reset_password',
-                    kwargs={
-                        'email': email,
-                        'new_password': password
-                    }, queue='user_service_queue'
+                    "user_service.update_reset_password",
+                    kwargs={"email": email, "new_password": password},
+                    queue="user_service_queue",
                 )
                 user.set_password(password)
                 user.save()
-                request.session.pop('is_email_confirmed', None)
-                request.session.pop('email', None)
+                request.session.pop("is_email_confirmed", None)
+                request.session.pop("email", None)
                 return Response(
-                    {'detail': 'Пароль успешно обновлён'},
-                    status=status.HTTP_200_OK
+                    {"detail": "Пароль успешно обновлён"}, status=status.HTTP_200_OK
                 )
             return Response(
-                {'detail': 'Неверный email, пользователь не найден'},
-                status=status.HTTP_400_BAD_REQUEST
+                {"detail": "Неверный email, пользователь не найден"},
+                status=status.HTTP_400_BAD_REQUEST,
             )
-        return Response(
-            serializer.errors, status=status.HTTP_400_BAD_REQUEST
-        )
+        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)

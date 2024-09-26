@@ -1,18 +1,24 @@
 from django.db import models
-from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
+from django.contrib.auth.models import (
+    AbstractBaseUser,
+    BaseUserManager,
+    PermissionsMixin,
+)
 
 
 class UserManager(BaseUserManager):
-    def _create_user(self, email, password, first_name, last_name, about_self, **extra_fields):
+    def _create_user(
+        self, email, password, first_name, last_name, about_self, **extra_fields
+    ):
         if not email:
-            raise ValueError('You must write your email')
+            raise ValueError("You must write your email")
         if not password:
-            raise ValueError('Password must be provided')
-        
+            raise ValueError("Password must be provided")
+
         user = self.model(
-            email = self.normalize_email(email),
-            first_name = first_name,
-            last_name = last_name,
+            email=self.normalize_email(email),
+            first_name=first_name,
+            last_name=last_name,
             about_self=about_self,
             **extra_fields
         )
@@ -21,21 +27,37 @@ class UserManager(BaseUserManager):
         user.save()
         return user
 
-    def create_user(self, email=None, password=None, first_name=None, last_name=None,
-                     about_self=None, **extra_fields):
+    def create_user(
+        self,
+        email=None,
+        password=None,
+        first_name=None,
+        last_name=None,
+        about_self=None,
+        **extra_fields
+    ):
         extra_fields.setdefault("is_staff", False)
         extra_fields.setdefault("is_superuser", False)
-        return self._create_user(email, password, first_name, last_name,
-                                 about_self, **extra_fields)
+        return self._create_user(
+            email, password, first_name, last_name, about_self, **extra_fields
+        )
 
-    def create_superuser(self, email=None, password=None, first_name='Default', last_name='Superuser',
-                         about_self=None, **extra_fields):
+    def create_superuser(
+        self,
+        email=None,
+        password=None,
+        first_name="Default",
+        last_name="Superuser",
+        about_self=None,
+        **extra_fields
+    ):
         extra_fields.setdefault("is_staff", True)
         extra_fields.setdefault("is_superuser", True)
         extra_fields.setdefault("is_active", True)
-        return self._create_user(email, password, first_name, last_name,
-                                 about_self, **extra_fields)
-             
+        return self._create_user(
+            email, password, first_name, last_name, about_self, **extra_fields
+        )
+
 
 class User(AbstractBaseUser, PermissionsMixin):
     email = models.EmailField(max_length=250, unique=True)
@@ -50,9 +72,9 @@ class User(AbstractBaseUser, PermissionsMixin):
 
     objects = UserManager()
 
-    USERNAME_FIELD = 'email'
+    USERNAME_FIELD = "email"
     REQUIRED_FIELDS = []
 
     class Meta:
-        verbose_name = 'User'
-        verbose_name_plural = 'Users'
+        verbose_name = "User"
+        verbose_name_plural = "Users"

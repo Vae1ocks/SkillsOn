@@ -10,11 +10,11 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'first_name', 'last_name', 'password']
-        extra_kwargs = {'password': {'write_only' : True}}
-    
+        fields = ["email", "first_name", "last_name", "password"]
+        extra_kwargs = {"password": {"write_only": True}}
+
     def create(self, validated_data):
-        password = validated_data.pop('password')
+        password = validated_data.pop("password")
         user = User.objects.create_user(**validated_data, password=password)
         return user
 
@@ -26,6 +26,7 @@ class ConfirmationCodeSerializer(serializers.Serializer):
 class IDSerializer(serializers.Serializer):
     id = serializers.IntegerField()
     # title = serializers.CharField(max_length=
+
 
 class CategorySerializer(serializers.Serializer):
     id = serializers.IntegerField()
@@ -39,14 +40,14 @@ class EmailSerializer(serializers.Serializer):
 class PasswordSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['password']
+        fields = ["password"]
 
 
 class EmailTokenObtainPairSerializer(TokenObtainPairSerializer):
     @classmethod
     def get_token(cls, user):
         token = super().get_token(user)
-        token['email'] = user.email
-        token['first_name'] = user.first_name
-        token['last_name'] = user.last_name
+        token["email"] = user.email
+        token["first_name"] = user.first_name
+        token["last_name"] = user.last_name
         return token
