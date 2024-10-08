@@ -36,6 +36,7 @@ import json
 class CategoryListView(ListAPIView):
     serializer_class = serializers.CategorySerializer
     queryset = Category.objects.all()
+    pagination_class = None
 
 
 class CourseOverviewList(GenericAPIView):
