@@ -1,0 +1,130 @@
+.consultation {
+  display: flex;
+  position: relative;
+  max-width: 1160px;
+  margin-left: auto;
+  margin-right: auto;
+  margin-bottom: 100px;
+
+  .banner {
+    background: #2871ee;
+    color: white;
+    position: relative;
+    border-radius: 32px;
+    width: 660px;
+    height: 395px;
+    overflow: hidden;
+
+    img {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      width: 384px;
+      z-index: 0;
+    }
+
+    .bg {
+      position: absolute;
+      width: 91%;
+      left: -27%;
+      bottom: -25%;
+    }
+
+    .title {
+      font-family: "Bartina";
+      font-size: 4rem;
+      margin-top: 48px;
+      margin-bottom: 0;
+      margin-left: 32px;
+    }
+
+    .desc {
+      position: relative;
+      margin-top: 24px;
+      margin-left: 32px;
+      max-width: 20.75rem;
+      z-index: 1;
+    }
+  }
+
+  form {
+    background: #f5f5f5;
+    position: absolute;
+    width: 760px;
+    height: 184px;
+    border-radius: 32px;
+    bottom: 46px;
+    right: 0;
+
+    .input {
+      display: flex;
+      max-width: 696px;
+      margin-left: auto;
+      margin-right: auto;
+      margin-top: 32px;
+      gap: 16px;
+
+      input {
+        background: white;
+        border: solid 2px #cccccc;
+        border-radius: 32px;
+        width: 300px;
+        height: 52px;
+        padding-left: 20px;
+        padding-right: 20px;
+      }
+    }
+
+    .submit {
+      display: flex;
+      max-width: 696px;
+      margin-left: auto;
+      margin-right: auto;
+      margin-top: 24px;
+      align-items: flex-start;
+
+      button {
+        background: #2871ee;
+        width: 400px;
+        padding-top: 12px;
+        padding-bottom: 12px;
+        padding-left: 24px;
+        padding-right: 24px;
+        color: #f5f5f5;
+        font-size: 1.125rem;
+        font-weight: bold;
+        border-radius: 32px;
+        border: none;
+        cursor: pointer;
+      }
+
+      input {
+        border: solid 2px #cccccc;
+        border-radius: 4px;
+        appearance: none;
+        -webkit-appearance: none;
+        display: flex;
+        align-content: center;
+        justify-content: center;
+        cursor: pointer;
+
+        &:before {
+          content: "";
+          background: url(../assets/checkmark.svg) no-repeat center;
+          width: 16px;
+          height: 16px;
+          transform: scale(0);
+        }
+
+        &:checked::before {
+          transform: scale(1);
+        }
+      }
+
+      label {
+        font-size: 14px;
+        color: #283739;
+      }
+    }
+  }
+}

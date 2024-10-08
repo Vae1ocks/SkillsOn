@@ -1,0 +1,40 @@
+.banner {
+  margin-bottom: 100px;
+  display: flex;
+  position: relative;
+  max-width: 1160px;
+  height: 552px;
+  margin-left: auto;
+  margin-right: auto;
+  overflow: hidden;
+  background: #2871ee;
+  border-radius: 32px;
+
+  .dec {
+    position: absolute;
+    left: -42.5%;
+    top: -30%;
+  }
+
+  .img {
+    position: absolute;
+    right: -6%;
+    bottom: -21.5%;
+    width: 608px;
+    height: 628px;
+  }
+
+  div {
+    color: white;
+    z-index: 1;
+    margin-left: 8.6%;
+
+    .title {
+      font-family: "Bartina";
+      font-size: 5.25rem;
+      line-height: 96%;
+      margin-bottom: 0px;
+      margin-top: 74px;
+    }
+  }
+}
