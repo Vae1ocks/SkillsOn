@@ -30,7 +30,6 @@ from drf_spectacular.utils import (
 )
 
 import requests
-import json
 
 
 class CategoryListView(ListAPIView):
@@ -329,15 +328,7 @@ class CourseViewSet(ModelViewSet):
         ],
     )
     def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return Response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
+        return super().list(request, *args, **kwargs)
 
     def perform_destroy(self, instance):
         if len(instance.students) != 0:
@@ -367,17 +358,6 @@ class UserCourseListView(ListAPIView):
     )
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.filter_queryset(self.get_queryset())
-
-        page = self.paginate_queryset(queryset)
-        if page is not None:
-            serializer = self.get_serializer(page, many=True)
-            return Response(serializer.data)
-
-        serializer = self.get_serializer(queryset, many=True)
-        return Response(serializer.data)
 
 
 class LessonCreateView(CreateAPIView):

@@ -37,8 +37,9 @@ REST_FRAMEWORK = {
         "rest_framework.permissions.AllowAny",
     ],
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
-    "DEFAULT_PAGINATION_CLASS": "rest_framework.pagination.PageNumberPagination",
-    "PAGE_SIZE": 10,
+    "DEFAULT_PAGINATION_CLASS":
+        "courses_service.paginators.PageNumberPaginationWithoutLinks",
+    "PAGE_SIZE": 16,
 }
 
 from datetime import timedelta
