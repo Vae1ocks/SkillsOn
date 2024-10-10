@@ -1,0 +1,129 @@
+.input-group {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+
+}
+
+input {
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 32px;
+    border: 1px solid #cccccc;
+}
+
+.registration-container {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background-color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100vh;
+    position: relative;
+    text-align: center;
+}
+
+.registration-form h1 {
+    margin-bottom: 20px;
+    font-size: 36px;
+    color: #283739;
+    ;
+}
+
+.step-indicator {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 20px;
+}
+
+.step-indicator span {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background-color: #ccc;
+    display: inline-block;
+    margin: 0 5px;
+    position: relative;
+}
+
+.step-indicator .active-step {
+    background-color: #007bff;
+}
+
+.input-group input {
+    width: 48%;
+}
+
+.registration-form form {
+    display: flex;
+    flex-direction: column;
+}
+
+.registration-form button {
+    padding: 12px 24px;
+    margin-top: 20px;
+    background-color: #007bff;
+    color: #fff;
+    border: none;
+    border-radius: 32px;
+    cursor: pointer;
+    width: 224px;
+    height: 44px;
+    font-weight: 700;
+    font-size: 18px;
+}
+
+.registration-form button:hover {
+    background-color: #0056b3;
+}
+
+.agreement {
+    display: flex;
+    align-items: flex-start;
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.agreement input {
+    margin-right: 10px;
+}
+
+.in-row {
+    display: flex;
+    justify-content: space-between;
+    gap: 16px;
+    width: 560px;
+
+}
+
+
+.login-link {
+    margin-top: 20px;
+    font-size: 14px;
+}
+
+.login-link a {
+    color: #007bff;
+    text-decoration: none;
+}
+
+.login-link a:hover {
+    text-decoration: underline;
+}
+
+.text-checkbox {
+    font-size: 14px;
+    text-align: left;
+}
+
+.logo {
+    background-image: url('../../../../data/skillson_logo.svg');
+    width: 180px;
+    height: 56px;
+    left: 630px;
+    gap: 0px;
+    margin: auto;
+    margin-top: 64px;
+    position: static;
+}

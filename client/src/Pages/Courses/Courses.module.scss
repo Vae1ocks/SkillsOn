@@ -1,0 +1,23 @@
+.layout {}
+
+.wrapper {
+    flex-direction: row;
+    display: flex;
+    border-radius: 4px;
+    border: 1px #70c05b solid;
+    width: 100%;
+    max-width: 1000px;
+    padding: 0 15px;
+    margin: 0 auto;
+
+}
+
+.container {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(auto-fill, 225px);
+    justify-content: center;
+    justify-items: center;
+    margin: 0 auto;
+
+}
