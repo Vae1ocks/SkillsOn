@@ -12,7 +12,7 @@ from unidecode import unidecode
 class CategorySerializer(serializers.ModelSerializer):
     class Meta:
         model = models.Category
-        fields = ["id", "title"]
+        fields = "__all__"
 
 
 class TextSerializer(serializers.ModelSerializer):
